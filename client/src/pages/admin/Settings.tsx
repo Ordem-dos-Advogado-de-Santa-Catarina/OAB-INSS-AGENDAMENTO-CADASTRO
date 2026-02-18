@@ -14,7 +14,7 @@ import { useLocation } from "wouter";
 export default function Settings() {
   const { user, loading } = useAuth();
   const [, navigate] = useLocation();
-  
+
   const settingsQuery = trpc.system.getSettings.useQuery();
   const updateSettingsMutation = trpc.system.updateSettings.useMutation({
     onSuccess: () => {
@@ -48,6 +48,7 @@ export default function Settings() {
     smtpSecure: false,
     smtpUser: "",
     smtpPassword: "",
+    allowInadimplente: false,
   });
 
   useEffect(() => {
@@ -74,6 +75,7 @@ export default function Settings() {
         smtpSecure: settingsQuery.data.smtpSecure ?? false,
         smtpUser: settingsQuery.data.smtpUser || "",
         smtpPassword: settingsQuery.data.smtpPassword || "",
+        allowInadimplente: settingsQuery.data.allowInadimplente ?? false,
       });
     }
   }, [settingsQuery.data]);
@@ -93,12 +95,12 @@ export default function Settings() {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-	      [name]: e.target.type === 'checkbox' 
-          ? (e.target as HTMLInputElement).checked 
-          : name.includes('Limit') || name.includes('Duration') || name.includes('Days') || name.includes('Hours') && !name.includes('working') && !name.includes('blocking') 
-            ? parseInt(value, 10) 
-            : value
-	    }));
+      [name]: e.target.type === 'checkbox'
+        ? (e.target as HTMLInputElement).checked
+        : name.includes('Limit') || name.includes('Duration') || name.includes('Days') || name.includes('Hours') && !name.includes('working') && !name.includes('blocking')
+          ? parseInt(value, 10)
+          : value
+    }));
   };
 
   return (
@@ -149,6 +151,20 @@ export default function Settings() {
                 <Label htmlFor="maxAdvancedBookingDays">Limite de Antecedência para Agendar (dias)</Label>
                 <Input id="maxAdvancedBookingDays" name="maxAdvancedBookingDays" type="number" value={formData.maxAdvancedBookingDays} onChange={handleChange} required />
               </div>
+              <div className="flex items-center justify-between p-4 bg-indigo-50 rounded-lg border border-indigo-100 col-span-1 md:col-span-2 mt-2">
+                <div className="space-y-0.5">
+                  <Label htmlFor="allowInadimplente" className="text-indigo-900 font-semibold">Permitir Acesso a Inadimplentes</Label>
+                  <p className="text-xs text-indigo-700">Se ativado, advogados com status "Inadimplente" na OAB poderão acessar o sistema.</p>
+                </div>
+                <input
+                  id="allowInadimplente"
+                  name="allowInadimplente"
+                  type="checkbox"
+                  className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600 cursor-pointer"
+                  checked={formData.allowInadimplente}
+                  onChange={handleChange}
+                />
+              </div>
             </CardContent>
           </Card>
 
@@ -198,40 +214,40 @@ export default function Settings() {
                 </div>
               </div>
               <div className="space-y-2">
-	                <Label htmlFor="adminEmails">E-mails dos Administradores (JSON Array)</Label>
-	                <Input id="adminEmails" name="adminEmails" value={formData.adminEmails} onChange={handleChange} placeholder='["admin@exemplo.com"]' required />
-	                <p className="text-[10px] text-gray-400">Formato: ["email1@teste.com", "email2@teste.com"]</p>
-	              </div>
-                <div className="border-t pt-4 mt-4 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="dailyReportEnabled">Relatório Diário Automático</Label>
-                      <p className="text-xs text-gray-500">Enviar lista de atendimentos do dia seguinte para admins.</p>
-                    </div>
-                    <input 
-                      id="dailyReportEnabled" 
-                      name="dailyReportEnabled" 
-                      type="checkbox" 
-                      className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
-                      checked={formData.dailyReportEnabled} 
-                      onChange={handleChange} 
-                    />
+                <Label htmlFor="adminEmails">E-mails dos Administradores (JSON Array)</Label>
+                <Input id="adminEmails" name="adminEmails" value={formData.adminEmails} onChange={handleChange} placeholder='["admin@exemplo.com"]' required />
+                <p className="text-[10px] text-gray-400">Formato: ["email1@teste.com", "email2@teste.com"]</p>
+              </div>
+              <div className="border-t pt-4 mt-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="dailyReportEnabled">Relatório Diário Automático</Label>
+                    <p className="text-xs text-gray-500">Enviar lista de atendimentos do dia seguinte para admins.</p>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="dailyReportTime">Horário de Envio do Relatório</Label>
-                    <Input 
-                      id="dailyReportTime" 
-                      name="dailyReportTime" 
-                      type="time" 
-                      value={formData.dailyReportTime} 
-                      onChange={handleChange} 
-                      disabled={!formData.dailyReportEnabled}
-                    />
-                    <p className="text-[10px] text-gray-400">O relatório contém os agendamentos marcados para o próximo dia útil.</p>
-                  </div>
+                  <input
+                    id="dailyReportEnabled"
+                    name="dailyReportEnabled"
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                    checked={formData.dailyReportEnabled}
+                    onChange={handleChange}
+                  />
                 </div>
-		            </CardContent>
-		          </Card>
+                <div className="space-y-2">
+                  <Label htmlFor="dailyReportTime">Horário de Envio do Relatório</Label>
+                  <Input
+                    id="dailyReportTime"
+                    name="dailyReportTime"
+                    type="time"
+                    value={formData.dailyReportTime}
+                    onChange={handleChange}
+                    disabled={!formData.dailyReportEnabled}
+                  />
+                  <p className="text-[10px] text-gray-400">O relatório contém os agendamentos marcados para o próximo dia útil.</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Configurações SMTP */}
           <Card>
@@ -263,13 +279,13 @@ export default function Settings() {
                 <p className="text-[10px] text-gray-400">Para Gmail, use uma senha de aplicativo gerada em https://myaccount.google.com/apppasswords</p>
               </div>
               <div className="flex items-center space-x-2">
-                <input 
-                  id="smtpSecure" 
-                  name="smtpSecure" 
-                  type="checkbox" 
+                <input
+                  id="smtpSecure"
+                  name="smtpSecure"
+                  type="checkbox"
                   className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
-                  checked={formData.smtpSecure} 
-                  onChange={handleChange} 
+                  checked={formData.smtpSecure}
+                  onChange={handleChange}
                 />
                 <Label htmlFor="smtpSecure" className="text-sm font-normal">
                   Usar conexão segura (TLS/SSL)

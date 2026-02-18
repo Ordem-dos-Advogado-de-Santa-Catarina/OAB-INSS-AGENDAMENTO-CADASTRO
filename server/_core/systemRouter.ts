@@ -31,6 +31,7 @@ export const systemRouter = router({
       smtpSecure: z.boolean(),
       smtpUser: z.string().optional(),
       smtpPassword: z.string().optional(),
+      allowInadimplente: z.boolean(),
     }))
     .mutation(async ({ input }) => {
       await updateSystemSettings(input);

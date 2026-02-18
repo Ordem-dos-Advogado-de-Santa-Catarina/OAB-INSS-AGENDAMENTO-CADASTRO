@@ -179,6 +179,7 @@ export const systemSettings = mysqlTable("system_settings", {
   smtpSecure: boolean("SMTPSECURE").default(false).notNull(),
   smtpUser: varchar("SMTPUSER", { length: 320 }),
   smtpPassword: text("SMTPPASSWORD"),
+  allowInadimplente: boolean("ALLOWINADIMPLENTE").default(false).notNull(),
   updatedAt: timestamp("UPDATEDAT").defaultNow().onUpdateNow().notNull(),
 });
 

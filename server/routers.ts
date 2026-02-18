@@ -37,9 +37,9 @@ export const appRouter = router({
 
   appointments: router({
     getPublicBlocks: publicProcedure
-      .input(z.object({ 
-        month: z.number(), 
-        year: z.number() 
+      .input(z.object({
+        month: z.number(),
+        year: z.number()
       }))
       .query(async ({ input }) => {
         const db = await getDb();
@@ -126,7 +126,7 @@ export const appRouter = router({
 
     getUpcoming: protectedProcedure.query(async ({ ctx }) => {
       const results = await getUpcomingAppointments(ctx.user.id);
-      
+
       const formattedAppointments = results.map(apt => ({
         ...apt,
         date: apt.appointmentDate.toLocaleDateString("pt-BR", { timeZone: "UTC" }),
@@ -149,7 +149,7 @@ export const appRouter = router({
           .from(appointmentMessages)
           .where(eq(appointmentMessages.appointmentId, apt.id))
           .limit(1);
-        
+
         return {
           ...apt,
           hasMessages: anyMessage.length > 0
@@ -174,7 +174,7 @@ export const appRouter = router({
         }
 
         await cancelAppointment(input.appointmentId, input.reason);
-        
+
         // Só atualiza o bloqueio de cancelamento se não for admin
         if (ctx.user.role !== "admin") {
           await updateLastCancellation(ctx.user.id);
@@ -247,17 +247,21 @@ export const appRouter = router({
           const userData = authResult.userData;
           const statusInadimplente = (userData as any).Inadimplente;
 
-          // Só valida inadimplência se for login via SOAP (OAB)
-          if (authResult.authMethod === 'soap' && statusInadimplente && statusInadimplente.trim() === 'Sim') {
-              throw new TRPCError({
-                  code: 'UNAUTHORIZED',
-                  message: 'Acesso negado: Regularize sua situação com a OAB'
-              });
+          // Busca configurações do sistema para verificar se permite inadimplentes
+          const settings = await getSystemSettings();
+          const allowInadimplente = settings?.allowInadimplente ?? false;
+
+          // Só valida inadimplência se for login via SOAP (OAB) e a configuração estiver desativa
+          if (authResult.authMethod === 'soap' && statusInadimplente && statusInadimplente.trim() === 'Sim' && !allowInadimplente) {
+            throw new TRPCError({
+              code: 'UNAUTHORIZED',
+              message: 'Acesso negado: Regularize sua situação com a OAB'
+            });
           }
 
           let user = await getUserByCPF(userData.cpf);
           const { upsertUser } = await import("./db.js");
-          
+
           const userPayload = {
             openId: authResult.authMethod === 'soap' ? `soap_${userData.cpf}` : `local_${userData.cpf}`,
             cpf: userData.cpf,
@@ -333,39 +337,39 @@ export const appRouter = router({
 
   documents: router({
     generateMyDocument: protectedProcedure
-      .input(z.object({ 
-        templateType: z.enum(['ANEXO_II', 'DECLARACAO_BOAS_PRATICAS', 'TERMO_ACEITE']) 
+      .input(z.object({
+        templateType: z.enum(['ANEXO_II', 'DECLARACAO_BOAS_PRATICAS', 'TERMO_ACEITE'])
       }))
       .mutation(async ({ input, ctx }) => {
-      try {
-        const user = ctx.user;
-        if (!user) throw new TRPCError({ code: "UNAUTHORIZED" });
+        try {
+          const user = ctx.user;
+          if (!user) throw new TRPCError({ code: "UNAUTHORIZED" });
 
-        const fullUser = await getUserByCPF(user.cpf);
-        if (!fullUser) throw new TRPCError({ code: "NOT_FOUND", message: "Usuário não encontrado" });
+          const fullUser = await getUserByCPF(user.cpf);
+          if (!fullUser) throw new TRPCError({ code: "NOT_FOUND", message: "Usuário não encontrado" });
 
-        // Mapeia o nome do arquivo com base no template
-        const filenames: Record<string, string> = {
-          ANEXO_II: 'ANEXO_II_TCMS_modelo_OAB',
-          DECLARACAO_BOAS_PRATICAS: 'Declaração_de_boas_práticas',
-          TERMO_ACEITE: 'Termo_de_aceite_do_ACT'
-        };
+          // Mapeia o nome do arquivo com base no template
+          const filenames: Record<string, string> = {
+            ANEXO_II: 'ANEXO_II_TCMS_modelo_OAB',
+            DECLARACAO_BOAS_PRATICAS: 'Declaração_de_boas_práticas',
+            TERMO_ACEITE: 'Termo_de_aceite_do_ACT'
+          };
 
-        const buffer = await documentService.generatePDF(input.templateType, fullUser);
-        
-        return {
-          filename: `${filenames[input.templateType]}_${fullUser.name.replace(/\s+/g, '_')}.pdf`,
-          content: buffer.toString('base64'),
-          contentType: 'application/pdf'
-        };
-      } catch (error) {
-        console.error("[Documents] Erro ao gerar documento:", error);
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Erro ao gerar documento PDF",
-        });
-      }
-    })
+          const buffer = await documentService.generatePDF(input.templateType, fullUser);
+
+          return {
+            filename: `${filenames[input.templateType]}_${fullUser.name.replace(/\s+/g, '_')}.pdf`,
+            content: buffer.toString('base64'),
+            contentType: 'application/pdf'
+          };
+        } catch (error) {
+          console.error("[Documents] Erro ao gerar documento:", error);
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Erro ao gerar documento PDF",
+          });
+        }
+      })
   }),
 
   messages: router({
@@ -419,8 +423,8 @@ export const appRouter = router({
           and(
             eq(appointmentMessages.isAdmin, !isAdmin),
             eq(appointmentMessages.isRead, false),
-            isAdmin 
-              ? sql`1=1` 
+            isAdmin
+              ? sql`1=1`
               : eq(appointmentMessages.senderId, ctx.user.id)
           )
         )
@@ -454,9 +458,9 @@ export const appRouter = router({
 
   admin: router({
     getCalendarAppointments: adminProcedure
-      .input(z.object({ 
-        month: z.number(), 
-        year: z.number() 
+      .input(z.object({
+        month: z.number(),
+        year: z.number()
       }))
       .query(async ({ input }) => {
         const db = await getDb();
@@ -502,10 +506,10 @@ export const appRouter = router({
       .input(z.object({ date: z.date().optional() }))
       .query(async ({ input }) => {
         const date = input.date || new Date();
-        
+
         const startOfDay = new Date(date);
         startOfDay.setHours(0, 0, 0, 0);
-        
+
         const endOfDay = new Date(date);
         endOfDay.setHours(23, 59, 59, 999);
 
@@ -596,7 +600,7 @@ export const appRouter = router({
               )
             )
             .limit(1);
-          
+
           if (unread.length === 0) return null; // Se não tem mensagem não lida, ignora
 
           return {
@@ -611,7 +615,7 @@ export const appRouter = router({
       }),
 
     getBlockedSlots: adminProcedure
-      .input(z.object({ 
+      .input(z.object({
         all: z.boolean().optional().default(true)
       }))
       .query(async ({ input }) => {
@@ -649,7 +653,7 @@ export const appRouter = router({
           const end = new Date(input.endDate);
           const blocks = [];
           let current = new Date(start);
-          
+
           while (current <= end) {
             blocks.push({
               blockedDate: new Date(current),
@@ -661,7 +665,7 @@ export const appRouter = router({
             });
             current.setDate(current.getDate() + 1);
           }
-          
+
           if (blocks.length > 0) {
             await db.insert(blockedSlots).values(blocks);
           }
@@ -732,7 +736,7 @@ export const appRouter = router({
         }
 
         const apt = appointmentData[0];
-        
+
         await emailService.sendCustomNotification({
           toEmail: apt.userEmail || "",
           userName: apt.userName || "Usuário",
@@ -765,7 +769,7 @@ export const appRouter = router({
 
         await db
           .update(emailTemplates)
-          .set({ 
+          .set({
             subject: input.subject,
             body: input.body,
             updatedAt: new Date()
@@ -814,14 +818,14 @@ export const appRouter = router({
               )
             )
             .limit(1);
-          
+
           // Verifica se o agendamento possui QUALQUER mensagem (para a aba Histórico)
           const anyMessage = await db
             .select({ id: appointmentMessages.id })
             .from(appointmentMessages)
             .where(eq(appointmentMessages.appointmentId, apt.id))
             .limit(1);
-          
+
           return {
             ...apt,
             date: apt.appointmentDate.toLocaleDateString("pt-BR"),
@@ -929,7 +933,7 @@ export const appRouter = router({
 
         await db
           .update(appointments)
-          .set({ 
+          .set({
             status: input.status,
             updatedAt: new Date()
           })
@@ -1018,26 +1022,26 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const form = await getUserForm(input.formId);
         if (!form || form.userId !== ctx.user.id) throw new TRPCError({ code: "UNAUTHORIZED" });
-        
+
         // Import node modules
         const fs = await import("fs");
         const path = await import("path");
-        
+
         // Ensure directory exists
         const dir = path.join(process.cwd(), "server/uploads", input.formId.toString());
         if (!fs.existsSync(dir)) {
           fs.mkdirSync(dir, { recursive: true });
         }
-        
+
         // Decode base64 and save to local filesystem
         const fileBuffer = Buffer.from(input.fileContent, 'base64');
         const fileName = `${Date.now()}_${input.fileName}`;
         const filePath = path.join(dir, fileName);
         fs.writeFileSync(filePath, fileBuffer);
-        
+
         // Build local URL
         const url = `/uploads/${input.formId}/${fileName}`;
-        
+
         // Save attachment record with local URL
         await createFormAttachment({
           formId: input.formId,
@@ -1045,7 +1049,7 @@ export const appRouter = router({
           fileUrl: url,
           fileType: input.fileType,
         });
-        
+
         return { success: true, url };
       }),
 
@@ -1067,7 +1071,7 @@ export const appRouter = router({
     getAll: adminProcedure.query(async () => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      
+
       const results = await db
         .select({
           id: userForms.id,
@@ -1082,7 +1086,7 @@ export const appRouter = router({
         })
         .from(userForms)
         .orderBy(desc(userForms.createdAt));
-        
+
       return results;
     }),
 
@@ -1098,7 +1102,7 @@ export const appRouter = router({
 
         await db
           .update(userForms)
-          .set({ 
+          .set({
             status: input.status,
             rejectionReason: input.status === "rejected" ? input.rejectionReason : null,
             updatedAt: new Date()
@@ -1139,15 +1143,15 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-        
+
         await db
           .update(userForms)
-          .set({ 
+          .set({
             registrationStatus: input.registrationStatus,
             updatedAt: new Date()
           })
           .where(eq(userForms.id, input.id));
-          
+
         return { success: true };
       }),
   }),
