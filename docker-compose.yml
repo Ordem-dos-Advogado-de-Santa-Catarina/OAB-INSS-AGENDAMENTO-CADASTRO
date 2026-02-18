@@ -9,6 +9,7 @@ services:
     environment:
       - NODE_ENV=production
       - TZ=America/Sao_Paulo
+      - PNPM_HOME=/pnpm/store
       # Conexão com o MySQL no Host IP: 172.16.2.5
       - OAUTH_SERVER_URL=http://localhost:3000
       # Usuário: gabrieljsdb
@@ -37,5 +38,10 @@ services:
       - ./shared:/app/shared
       - ./drizzle:/app/drizzle
       - /app/node_modules
+      - pnpm_store:/pnpm/store
     # Garante que o nodemailer seja instalado no container mesmo com volumes montados
     command: sh -c "pnpm install --no-frozen-lockfile && pnpm dev"
+
+volumes:
+  pnpm_store:
+    name: inss_pnpm_store

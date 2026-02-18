@@ -8,15 +8,20 @@ RUN npm install -g pnpm@10.15.1
 ENV TZ=America/Sao_Paulo
 
 # Definir diretório de trabalho
+# Definir diretório de trabalho
 WORKDIR /app
 
-# Copiar arquivos de dependências
+# Instalar dependências do sistema primeiro (camada estável)
+RUN apk add --no-cache libreoffice openjdk11-jre ttf-dejavu fontconfig zip unzip fontconfig g++ python3 make
+
+# Copiar apenas arquivos de dependências
 COPY package.json pnpm-lock.yaml ./
 COPY patches ./patches
 
-# Instalar dependências
-RUN apk add --no-cache libreoffice openjdk11-jre ttf-dejavu fontconfig zip unzip fontconfig g++ python3 make
-RUN pnpm install --no-frozen-lockfile
+# Instalar dependências usando cache mount para o pnpm store
+# Isso acelera drasticamente os builds subsequentes
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm install --no-frozen-lockfile
 
 # Copiar todo o código fonte
 COPY . .
