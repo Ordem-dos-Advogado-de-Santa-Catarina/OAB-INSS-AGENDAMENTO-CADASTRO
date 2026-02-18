@@ -1,0 +1,1 @@
+docker exec -it agendamento-inss-app npx tsx server/scripts/create-user.ts "167.263.197-12" "GABRIEL BARCELLOS" "dtioab@oab-sc.org.br" "@Aa016512" "admin"

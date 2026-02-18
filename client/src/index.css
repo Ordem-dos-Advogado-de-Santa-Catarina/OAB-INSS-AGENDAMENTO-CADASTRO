@@ -1,0 +1,153 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  /* Cores OAB-SC: Azul e Vermelho */
+  --primary: #004a80; /* Azul OAB */
+  --primary-foreground: #ffffff;
+  --secondary: #c8191e; /* Vermelho OAB */
+  --secondary-foreground: #ffffff;
+  
+  --sidebar-primary: #004a80;
+  --sidebar-primary-foreground: #ffffff;
+  
+  --chart-1: #004a80;
+  --chart-2: #c8191e;
+  --chart-3: #0066b2;
+  --chart-4: #e31b23;
+  --chart-5: #003366;
+  
+  --radius: 0.5rem;
+  --background: #f8f9fa;
+  --foreground: #333333;
+  
+  --card: #ffffff;
+  --card-foreground: #333333;
+  
+  --popover: #ffffff;
+  --popover-foreground: #333333;
+  
+  --muted: #f1f3f5;
+  --muted-foreground: #6c757d;
+  
+  --accent: #e9ecef;
+  --accent-foreground: #212529;
+  
+  --destructive: #dc3545;
+  --destructive-foreground: #ffffff;
+  
+  --border: #dee2e6;
+  --input: #dee2e6;
+  --ring: #004a80;
+  
+  --sidebar: #ffffff;
+  --sidebar-foreground: #333333;
+  --sidebar-accent: #f8f9fa;
+  --sidebar-accent-foreground: #004a80;
+  --sidebar-border: #eeeeee;
+  --sidebar-ring: #004a80;
+}
+
+.dark {
+  --primary: #0066b2;
+  --primary-foreground: #ffffff;
+  --background: #1a1a1a;
+  --foreground: #e0e0e0;
+  --card: #242424;
+  --card-foreground: #e0e0e0;
+  --popover: #242424;
+  --popover-foreground: #e0e0e0;
+  --secondary: #c8191e;
+  --secondary-foreground: #ffffff;
+  --muted: #2d2d2d;
+  --muted-foreground: #a0a0a0;
+  --accent: #2d2d2d;
+  --accent-foreground: #ffffff;
+  --destructive: #ff4d4d;
+  --destructive-foreground: #ffffff;
+  --border: #333333;
+  --input: #333333;
+  --ring: #0066b2;
+  --sidebar: #1a1a1a;
+  --sidebar-foreground: #e0e0e0;
+  --sidebar-accent: #2d2d2d;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #333333;
+  --sidebar-ring: #0066b2;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Open Sans", "Raleway", Helvetica, sans-serif;
+  }
+}
+
+@layer components {
+  .container {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .container {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container {
+      padding-left: 2rem;
+      padding-right: 2rem;
+      max-width: 1280px;
+    }
+  }
+}
