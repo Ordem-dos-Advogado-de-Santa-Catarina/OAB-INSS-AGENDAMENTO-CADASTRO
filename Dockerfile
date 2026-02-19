@@ -8,11 +8,10 @@ RUN npm install -g pnpm@10.15.1
 ENV TZ=America/Sao_Paulo
 
 # Definir diretório de trabalho
-# Definir diretório de trabalho
 WORKDIR /app
 
 # Instalar dependências do sistema primeiro (camada estável)
-RUN apk add --no-cache libreoffice openjdk11-jre ttf-dejavu fontconfig zip unzip fontconfig g++ python3 make
+RUN apk add --no-cache libreoffice openjdk11-jre ttf-dejavu fontconfig zip unzip fontconfig g++ python3 make libc6-compat
 
 # Copiar apenas arquivos de dependências
 COPY package.json pnpm-lock.yaml ./
