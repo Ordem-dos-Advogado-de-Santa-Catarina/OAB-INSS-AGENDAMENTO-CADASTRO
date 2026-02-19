@@ -182,10 +182,10 @@ export default function AdminFormsList() {
                           <DialogHeader>
                             <DialogTitle className="flex items-center gap-2">
                               Detalhes da Solicitação
-                              {getFormTypeBadge(formDetailQuery.data.formType)}
+                              {formDetailQuery.data && getFormTypeBadge(formDetailQuery.data.formType)}
                             </DialogTitle>
                             <DialogDescription>
-                              Informações enviadas pelo advogado em {new Date(formDetailQuery.data.submittedAt!).toLocaleString("pt-BR")}
+                              Informações enviadas pelo advogado {formDetailQuery.data?.submittedAt && `em ${new Date(formDetailQuery.data.submittedAt).toLocaleString("pt-BR")}`}
                             </DialogDescription>
                           </DialogHeader>
 
