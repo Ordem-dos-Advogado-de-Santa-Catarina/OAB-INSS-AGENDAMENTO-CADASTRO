@@ -81,6 +81,13 @@ export default function AdminFormsList() {
     }
   };
 
+  const getFormTypeBadge = (type: string) => {
+    switch (type) {
+      case "tcms_update": return <Badge className="bg-red-100 text-red-800 border-red-200">Solicitação de Atualização</Badge>;
+      default: return <Badge className="bg-green-100 text-green-800 border-green-200">Cadastro Novo</Badge>;
+    }
+  };
+
   const handleApprove = async (id: number) => {
     setIsProcessing(true);
     await updateStatusMutation.mutateAsync({ id, status: "approved" });
@@ -120,6 +127,7 @@ export default function AdminFormsList() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nome</TableHead>
+                  <TableHead>Tipo</TableHead>
                   <TableHead>CPF</TableHead>
                   <TableHead>OAB</TableHead>
                   <TableHead>Data de Envio</TableHead>
@@ -132,6 +140,7 @@ export default function AdminFormsList() {
                 {formsQuery.data?.map((form) => (
                   <TableRow key={form.id}>
                     <TableCell className="font-medium">{form.name}</TableCell>
+                    <TableCell>{getFormTypeBadge(form.formType)}</TableCell>
                     <TableCell>{form.cpf}</TableCell>
                     <TableCell>{form.oab}</TableCell>
                     <TableCell>
@@ -171,8 +180,13 @@ export default function AdminFormsList() {
                         </DialogTrigger>
                         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                           <DialogHeader>
-                            <DialogTitle>Detalhes do Formulário</DialogTitle>
-                            <DialogDescription>Informações e documentos enviados por {form.name}</DialogDescription>
+                            <DialogTitle className="flex items-center gap-2">
+                              Detalhes da Solicitação
+                              {getFormTypeBadge(formDetailQuery.data.formType)}
+                            </DialogTitle>
+                            <DialogDescription>
+                              Informações enviadas pelo advogado em {new Date(formDetailQuery.data.submittedAt!).toLocaleString("pt-BR")}
+                            </DialogDescription>
                           </DialogHeader>
 
                           {formDetailQuery.isLoading ? (

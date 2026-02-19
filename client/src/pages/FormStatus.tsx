@@ -221,8 +221,8 @@ export default function FormStatus() {
                                 <CardTitle className="text-lg">
                                   Formulário #{form.id}
                                 </CardTitle>
-                                <Badge variant="outline" className={form.formType === "tcms_update" ? "bg-purple-50 text-purple-700 border-purple-300" : "bg-indigo-50 text-indigo-700 border-indigo-300"}>
-                                  {form.formType === "tcms_update" ? "Solicitação TCMS" : "Cadastro Inicial"}
+                                <Badge variant="outline" className={form.formType === "tcms_update" ? "bg-red-50 text-red-700 border-red-300" : "bg-green-50 text-green-700 border-green-300"}>
+                                  {form.formType === "tcms_update" ? "Solicitação de Atualização" : "Cadastro Novo (OAB INSS)"}
                                 </Badge>
                                 {getStatusBadge(form.status)}
                                 {getRegistrationBadge(form.registrationStatus)}
