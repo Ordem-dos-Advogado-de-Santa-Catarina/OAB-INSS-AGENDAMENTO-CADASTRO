@@ -235,6 +235,8 @@ export const userForms = mysqlTable("user_forms", {
   cidade: varchar("CIDADE", { length: 100 }),
   estado: varchar("ESTADO", { length: 2 }),
   // Status do formulário
+  formType: mysqlEnum("FORMTYPE", ["initial", "tcms_update"]).default("initial").notNull(),
+  description: text("DESCRIPTION"),
   status: mysqlEnum("STATUS", ["draft", "submitted", "approved", "rejected"]).default("draft").notNull(),
   registrationStatus: mysqlEnum("REGISTRATIONSTATUS", ["not_registered", "registered"]).default("not_registered").notNull(),
   rejectionReason: text("REJECTIONREASON"),
@@ -244,6 +246,7 @@ export const userForms = mysqlTable("user_forms", {
 }, (table) => ({
   userIdIdx: index("form_userId_idx").on(table.userId),
   statusIdx: index("form_status_idx").on(table.status),
+  formTypeIdx: index("form_formType_idx").on(table.formType),
 }));
 
 /**

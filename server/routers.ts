@@ -973,6 +973,8 @@ export const appRouter = router({
         bairro: z.string().optional(),
         cidade: z.string().optional(),
         estado: z.string().optional(),
+        formType: z.enum(["initial", "tcms_update"]).default("initial"),
+        description: z.string().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
         // Se um telefone foi fornecido no formulário, atualiza o cadastro permanente do usuário
@@ -1082,6 +1084,7 @@ export const appRouter = router({
           email: userForms.email,
           oab: userForms.oab,
           status: userForms.status,
+          formType: userForms.formType,
           registrationStatus: userForms.registrationStatus,
           submittedAt: userForms.submittedAt,
           createdAt: userForms.createdAt,

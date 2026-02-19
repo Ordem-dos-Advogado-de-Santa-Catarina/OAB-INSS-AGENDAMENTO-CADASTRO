@@ -5,12 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { 
-  FileText, 
-  CheckCircle2, 
-  Clock, 
-  XCircle, 
-  AlertCircle, 
+import {
+  FileText,
+  CheckCircle2,
+  Clock,
+  XCircle,
+  AlertCircle,
   Loader2,
   ChevronDown,
   ChevronUp,
@@ -31,6 +31,8 @@ interface FormData {
   cpf: string;
   email: string;
   oab: string;
+  formType: "initial" | "tcms_update";
+  description?: string | null;
   status: "draft" | "submitted" | "approved" | "rejected";
   registrationStatus: "not_registered" | "registered";
   rejectionReason?: string | null;
@@ -222,7 +224,7 @@ export default function FormStatus() {
                                 {getRegistrationBadge(form.registrationStatus)}
                               </div>
                               <CardDescription className="text-sm">
-                                <span className="font-medium text-gray-700">OAB:</span> {form.oab} • 
+                                <span className="font-medium text-gray-700">OAB:</span> {form.oab} •
                                 <span className="font-medium text-gray-700 ml-2">CPF:</span> {form.cpf}
                               </CardDescription>
                               <p className="text-xs text-gray-500 mt-2">
@@ -251,15 +253,14 @@ export default function FormStatus() {
                   <CollapsibleContent>
                     <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 space-y-4">
                       {/* Status Description */}
-                      <Alert className={`${
-                        form.status === "approved"
+                      <Alert className={`${form.status === "approved"
                           ? "bg-green-50 border-green-200 text-green-800"
                           : form.status === "rejected"
-                          ? "bg-red-50 border-red-200 text-red-800"
-                          : form.status === "submitted"
-                          ? "bg-blue-50 border-blue-200 text-blue-800"
-                          : "bg-gray-50 border-gray-200 text-gray-800"
-                      }`}>
+                            ? "bg-red-50 border-red-200 text-red-800"
+                            : form.status === "submitted"
+                              ? "bg-blue-50 border-blue-200 text-blue-800"
+                              : "bg-gray-50 border-gray-200 text-gray-800"
+                        }`}>
                         <AlertCircle className="h-4 w-4" />
                         <AlertDescription>
                           {getStatusDescription(form.status)}

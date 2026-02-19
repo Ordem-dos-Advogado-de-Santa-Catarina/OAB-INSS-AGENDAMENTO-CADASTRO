@@ -30,6 +30,7 @@ import { Button } from "./ui/button";
 const menuItems = [
   { icon: LayoutDashboard, label: "Painel Principal", path: "/dashboard" },
   { icon: FileText, label: "Cadastro OAB INSS", path: "/forms/new" },
+  { icon: ClipboardList, label: "Solicitação TCMS", path: "/forms/tcms" },
   { icon: CheckCircle, label: "Status Cadastro INSS", path: "/forms/status" },
   { icon: CalendarDays, label: "Meus Agendamentos", path: "/my-appointments" },
   { icon: MessageSquare, label: "Mensagens", path: "/messages" },
@@ -76,7 +77,7 @@ export default function DashboardLayout({
         <div className="flex flex-col items-center gap-8 p-8 max-w-md w-full bg-white rounded-xl shadow-lg border">
           <div className="flex flex-col items-center gap-6">
             <div className="w-20 h-20 bg-[#004a80] rounded-full flex items-center justify-center">
-               <ShieldCheck className="h-10 w-10 text-white" />
+              <ShieldCheck className="h-10 w-10 text-white" />
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-center text-gray-900">
               Sessão Expirada

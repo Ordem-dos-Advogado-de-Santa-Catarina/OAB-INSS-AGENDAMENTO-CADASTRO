@@ -16,6 +16,7 @@ import AdminCalendar from "./pages/admin/Calendar";
 import EmailSettings from "./pages/admin/EmailSettings";
 import Messages from "./pages/Messages";
 import UserForm from "./pages/forms/UserForm";
+import TCMSUpdateForm from "./pages/forms/TCMSUpdateForm";
 import FormStatus from "./pages/FormStatus";
 import FormDetailsView from "./pages/forms/FormDetailsView";
 import AdminFormsList from "./pages/admin/forms/AdminFormsList";
@@ -27,6 +28,7 @@ function Router() {
       <Route path={"/login"} component={Login} />
       <Route path={"/dashboard"} component={Dashboard} />
       <Route path={"/forms/new"} component={UserForm} />
+      <Route path={"/forms/tcms"} component={TCMSUpdateForm} />
       <Route path={"/forms/status"} component={FormStatus} />
       <Route path={"/forms/view/:id"} component={FormDetailsView} />
       <Route path={"/my-appointments"} component={MyAppointments} />
