@@ -1,38 +1,60 @@
-# Usar imagem Node.js 22 (compatível com a versão do projeto)
-FROM node:22-alpine
-
-# Instalar pnpm globalmente
-RUN npm install -g pnpm@10.15.1
+# --- ESTÁGIO 1: Base com Dependências de Runtime (O que SEMPRE será necessário) ---
+FROM node:22-alpine AS base
 
 # Definir fuso horário
 ENV TZ=America/Sao_Paulo
 
-# Definir diretório de trabalho
+# Instalar pnpm globalmente
+RUN npm install -g pnpm@10.15.1
+
+# Instalar dependências de SISTEMA (Runtime: PDF, Office, JRE)
+# Esta camada é pesada mas raramente muda, ficando em cache.
+RUN apk add --no-cache \
+    libreoffice \
+    openjdk11-jre \
+    ttf-dejavu \
+    fontconfig \
+    zip \
+    unzip \
+    libc6-compat
+
 WORKDIR /app
 
-# Instalar dependências do sistema primeiro (camada estável)
-RUN apk add --no-cache libreoffice openjdk11-jre ttf-dejavu fontconfig zip unzip fontconfig g++ python3 make libc6-compat
+# --- ESTÁGIO 2: Build (Onde instalamos compiladores e geramos o código) ---
+FROM base AS build
 
-# Copiar apenas arquivos de dependências
+# Instalar dependências de COMPILAÇÃO (Necessárias apenas para instalar pacotes node)
+# Removidas no estágio final para economizar MUITO espaço.
+RUN apk add --no-cache g++ python3 make
+
+# Copiar arquivos de dependências
 COPY package.json pnpm-lock.yaml ./
 COPY patches ./patches
 
-# Instalar dependências usando cache mount para o pnpm store
-# Isso acelera drasticamente os builds subsequentes
+# Instalar dependências usando cache mount
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --no-frozen-lockfile
 
-# Copiar todo o código fonte
+# Copiar código e gerar build
 COPY . .
-
-# Fazer o Build da aplicação
 RUN pnpm build
+
+# --- ESTÁGIO 3: Final (Imagem leve apenas com o essencial) ---
+FROM base AS final
+
+# Copiar apenas o necessário do estágio de build
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/package.json ./package.json
+COPY --from=build /app/pnpm-lock.yaml ./pnpm-lock.yaml
+COPY --from=build /app/patches ./patches
+
+# Instalar apenas dependências de produção para reduzir espaço
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm install --prod --no-frozen-lockfile
 
 # Definir variável de ambiente para produção
 ENV NODE_ENV=production
 
-# Expor porta da aplicação
+# Expor porta e comando
 EXPOSE 3000
-
-# Comando para iniciar em produção
 CMD ["pnpm", "start"]

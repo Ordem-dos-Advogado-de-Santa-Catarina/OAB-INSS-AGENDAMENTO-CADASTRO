@@ -4,6 +4,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: build
     container_name: agendamento-inss-app
     restart: unless-stopped
     environment:
