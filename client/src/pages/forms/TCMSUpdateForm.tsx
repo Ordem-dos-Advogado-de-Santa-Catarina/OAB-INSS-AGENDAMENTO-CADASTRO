@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FileText, CheckCircle2, Loader2, Upload, AlertCircle, Info } from "lucide-react";
 import { trpc } from "@/lib/trpc";
@@ -22,6 +23,7 @@ export default function TCMSUpdateForm() {
         email: "",
         oab: "",
         phone: "",
+        reason: "",
         description: ""
     });
 
@@ -72,8 +74,13 @@ export default function TCMSUpdateForm() {
     };
 
     const handleSubmit = async () => {
+        if (!formData.reason) {
+            toast.error("Por favor, selecione o motivo da solicitação.");
+            return;
+        }
+
         if (!formData.description) {
-            toast.error("Por favor, descreva o que deseja atualizar.");
+            toast.error("Por favor, forneça uma descrição detalhada.");
             return;
         }
 
@@ -157,14 +164,33 @@ export default function TCMSUpdateForm() {
                 <Card>
                     <CardHeader>
                         <CardTitle>Detalhes da Solicitação</CardTitle>
-                        <CardDescription>Descreva o que precisa ser atualizado e anexe os documentos.</CardDescription>
+                        <CardDescription>Escolha o motivo e descreva o que precisa ser atualizado.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="description">Descrição da Atualização</Label>
+                            <Label htmlFor="reason">Motivo da Solicitação</Label>
+                            <Select
+                                value={formData.reason}
+                                onValueChange={(value) => setFormData(prev => ({ ...prev, reason: value }))}
+                            >
+                                <SelectTrigger id="reason" className="w-full">
+                                    <SelectValue placeholder="Selecione um motivo..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Atualização de Endereço">Atualização de Endereço</SelectItem>
+                                    <SelectItem value="Mudança de Nome/Sobrenome">Mudança de Nome/Sobrenome</SelectItem>
+                                    <SelectItem value="Correção de Dados Cadastrais">Correção de Dados Cadastrais</SelectItem>
+                                    <SelectItem value="Envio de Documentação Complementar">Envio de Documentação Complementar</SelectItem>
+                                    <SelectItem value="Outros">Outros (especificar abaixo)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="description">Descrição Detalhada</Label>
                             <Textarea
                                 id="description"
-                                placeholder="Exemplo: Preciso atualizar meu endereço e enviar nova certidão negativa..."
+                                placeholder="Descreva aqui os detalhes da sua solicitação..."
                                 className="min-h-32"
                                 value={formData.description}
                                 onChange={handleInputChange}

@@ -974,6 +974,7 @@ export const appRouter = router({
         cidade: z.string().optional(),
         estado: z.string().optional(),
         formType: z.enum(["initial", "tcms_update"]).default("initial"),
+        reason: z.string().optional(),
         description: z.string().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
@@ -1085,6 +1086,7 @@ export const appRouter = router({
           oab: userForms.oab,
           status: userForms.status,
           formType: userForms.formType,
+          reason: userForms.reason,
           registrationStatus: userForms.registrationStatus,
           submittedAt: userForms.submittedAt,
           createdAt: userForms.createdAt,

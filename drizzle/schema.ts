@@ -236,6 +236,7 @@ export const userForms = mysqlTable("user_forms", {
   estado: varchar("ESTADO", { length: 2 }),
   // Status do formulário
   formType: mysqlEnum("FORMTYPE", ["initial", "tcms_update"]).default("initial").notNull(),
+  reason: text("REASON"),
   description: text("DESCRIPTION"),
   status: mysqlEnum("STATUS", ["draft", "submitted", "approved", "rejected"]).default("draft").notNull(),
   registrationStatus: mysqlEnum("REGISTRATIONSTATUS", ["not_registered", "registered"]).default("not_registered").notNull(),

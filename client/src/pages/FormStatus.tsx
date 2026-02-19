@@ -32,6 +32,7 @@ interface FormData {
   email: string;
   oab: string;
   formType: "initial" | "tcms_update";
+  reason?: string | null;
   description?: string | null;
   status: "draft" | "submitted" | "approved" | "rejected";
   registrationStatus: "not_registered" | "registered";
@@ -220,12 +221,19 @@ export default function FormStatus() {
                                 <CardTitle className="text-lg">
                                   Formulário #{form.id}
                                 </CardTitle>
+                                <Badge variant="outline" className={form.formType === "tcms_update" ? "bg-purple-50 text-purple-700 border-purple-300" : "bg-indigo-50 text-indigo-700 border-indigo-300"}>
+                                  {form.formType === "tcms_update" ? "Solicitação TCMS" : "Cadastro Inicial"}
+                                </Badge>
                                 {getStatusBadge(form.status)}
                                 {getRegistrationBadge(form.registrationStatus)}
                               </div>
                               <CardDescription className="text-sm">
-                                <span className="font-medium text-gray-700">OAB:</span> {form.oab} •
-                                <span className="font-medium text-gray-700 ml-2">CPF:</span> {form.cpf}
+                                {form.formType === "tcms_update" && form.reason && (
+                                  <div className="mb-2">
+                                    <span className="font-bold text-gray-900">Motivo:</span> {form.reason}
+                                  </div>
+                                )}
+                                <span className="font-medium text-gray-700">OAB:</span> {form.oab} • <span className="font-medium text-gray-700 ml-2">CPF:</span> {form.cpf}
                               </CardDescription>
                               <p className="text-xs text-gray-500 mt-2">
                                 Criado em {new Date(form.createdAt).toLocaleDateString("pt-BR")}
@@ -254,12 +262,12 @@ export default function FormStatus() {
                     <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 space-y-4">
                       {/* Status Description */}
                       <Alert className={`${form.status === "approved"
-                          ? "bg-green-50 border-green-200 text-green-800"
-                          : form.status === "rejected"
-                            ? "bg-red-50 border-red-200 text-red-800"
-                            : form.status === "submitted"
-                              ? "bg-blue-50 border-blue-200 text-blue-800"
-                              : "bg-gray-50 border-gray-200 text-gray-800"
+                        ? "bg-green-50 border-green-200 text-green-800"
+                        : form.status === "rejected"
+                          ? "bg-red-50 border-red-200 text-red-800"
+                          : form.status === "submitted"
+                            ? "bg-blue-50 border-blue-200 text-blue-800"
+                            : "bg-gray-50 border-gray-200 text-gray-800"
                         }`}>
                         <AlertCircle className="h-4 w-4" />
                         <AlertDescription>

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Eye, FileText, Download, CheckCircle, XCircle, UserCheck, UserMinus, AlertCircle } from "lucide-react";
+import { Loader2, Eye, FileText, Download, CheckCircle, XCircle, UserCheck, UserMinus, AlertCircle, Info } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -94,10 +94,10 @@ export default function AdminFormsList() {
     if (!selectedFormId) return;
 
     setIsProcessing(true);
-    await updateStatusMutation.mutateAsync({ 
-      id: selectedFormId, 
-      status: "rejected", 
-      rejectionReason 
+    await updateStatusMutation.mutateAsync({
+      id: selectedFormId,
+      status: "rejected",
+      rejectionReason
     });
   };
 
@@ -174,7 +174,7 @@ export default function AdminFormsList() {
                             <DialogTitle>Detalhes do Formulário</DialogTitle>
                             <DialogDescription>Informações e documentos enviados por {form.name}</DialogDescription>
                           </DialogHeader>
-                          
+
                           {formDetailQuery.isLoading ? (
                             <div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>
                           ) : formDetailQuery.data ? (
@@ -211,7 +211,22 @@ export default function AdminFormsList() {
                                   <p className="text-sm text-red-600">{formDetailQuery.data.rejectionReason}</p>
                                 </div>
                               )}
+                              {formDetailQuery.data.formType === "tcms_update" && (
+                                <div className="space-y-4">
+                                  <div className="bg-purple-50 p-4 rounded-lg border border-purple-100">
+                                    <h4 className="font-bold text-purple-900 mb-1 flex items-center gap-2">
+                                      <Info className="h-4 w-4" />
+                                      Motivo da Solicitação
+                                    </h4>
+                                    <p className="text-purple-800">{formDetailQuery.data.reason || "Não especificado"}</p>
+                                  </div>
 
+                                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                                    <h4 className="font-bold text-gray-900 mb-1">Descrição Detalhada</h4>
+                                    <p className="text-gray-700 whitespace-pre-wrap">{formDetailQuery.data.description || "Nenhuma descrição fornecida."}</p>
+                                  </div>
+                                </div>
+                              )}
                               <div className="space-y-3">
                                 <h4 className="font-bold text-sm text-gray-700">Documentos Anexados</h4>
                                 <div className="grid grid-cols-1 gap-2">
@@ -240,8 +255,8 @@ export default function AdminFormsList() {
                                 <div className="flex gap-2">
                                   <AlertDialog>
                                     <AlertDialogTrigger asChild>
-                                      <Button 
-                                        variant="outline" 
+                                      <Button
+                                        variant="outline"
                                         size="sm"
                                         className={formDetailQuery.data.registrationStatus === 'registered' ? "bg-indigo-50 text-indigo-700 border-indigo-200" : ""}
                                       >
@@ -271,8 +286,8 @@ export default function AdminFormsList() {
                                 <div className="flex gap-3">
                                   <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
                                     <DialogTrigger asChild>
-                                      <Button 
-                                        variant="outline" 
+                                      <Button
+                                        variant="outline"
                                         className="text-red-600 border-red-200 hover:bg-red-50"
                                       >
                                         <XCircle className="h-4 w-4 mr-2" />
@@ -287,7 +302,7 @@ export default function AdminFormsList() {
                                         </DialogDescription>
                                       </DialogHeader>
                                       <div className="py-4">
-                                        <Textarea 
+                                        <Textarea
                                           placeholder="Descreva aqui o motivo da recusa (ex: Documento ilegível, falta de assinatura...)"
                                           value={rejectionReason}
                                           onChange={(e) => setRejectionReason(e.target.value)}
@@ -296,8 +311,8 @@ export default function AdminFormsList() {
                                       </div>
                                       <DialogFooter>
                                         <Button variant="outline" onClick={() => setIsRejectDialogOpen(false)}>Cancelar</Button>
-                                        <Button 
-                                          variant="destructive" 
+                                        <Button
+                                          variant="destructive"
                                           onClick={handleReject}
                                           disabled={isProcessing}
                                         >
@@ -308,7 +323,7 @@ export default function AdminFormsList() {
                                     </DialogContent>
                                   </Dialog>
 
-                                  <Button 
+                                  <Button
                                     className="bg-green-600 hover:bg-green-700"
                                     onClick={() => handleApprove(form.id)}
                                     disabled={isProcessing}
