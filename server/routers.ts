@@ -26,7 +26,7 @@ import {
   getSystemSettings,
   updateSystemSettings,
 } from "./db.js";
-import { eq, and, gte, lte, asc, desc, ne, sql } from "drizzle-orm";
+import { eq, and, or, gte, lte, asc, desc, ne, sql } from "drizzle-orm";
 import { users, appointments, blockedSlots, appointmentMessages, emailTemplates, userForms, formAttachments } from "../drizzle/schema.js";
 import { soapAuthService } from "./services/soapAuthService.js";
 import { localAuthService } from "./services/localAuthService.js";
@@ -543,7 +543,11 @@ export const appRouter = router({
             and(
               gte(appointments.appointmentDate, startOfDay),
               lte(appointments.appointmentDate, endOfDay),
-              eq(appointments.status, "confirmed")
+              or(
+                eq(appointments.status, "confirmed"),
+                eq(appointments.status, "completed"),
+                eq(appointments.status, "no_show")
+              )
             )
           )
           .orderBy(asc(appointments.startTime));
