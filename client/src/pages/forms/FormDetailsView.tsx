@@ -27,6 +27,7 @@ interface FormData {
   name: string;
   cpf: string;
   email: string;
+  notificationEmail: string;
   oab: string;
   phone?: string;
   address?: string;
@@ -279,8 +280,12 @@ export default function FormDetailsView() {
                 <p className="text-lg font-semibold text-gray-900 mt-1">{form.name}</p>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-600">Email</label>
+                <label className="text-sm font-medium text-gray-600">Email Pessoal</label>
                 <p className="text-lg font-semibold text-gray-900 mt-1">{form.email}</p>
+              </div>
+              <div className="p-3 bg-indigo-50 rounded-lg border border-indigo-100">
+                <label className="text-xs font-bold text-indigo-600 uppercase">E-mail Notificação INSS Digital</label>
+                <p className="text-lg font-bold text-indigo-900 mt-1">{form.notificationEmail}</p>
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-600">CPF</label>

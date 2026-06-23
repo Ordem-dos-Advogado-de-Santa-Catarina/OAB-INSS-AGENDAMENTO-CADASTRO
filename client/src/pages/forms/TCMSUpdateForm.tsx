@@ -23,6 +23,7 @@ export default function TCMSUpdateForm() {
         email: "",
         oab: "",
         phone: "",
+        notificationEmail: "",
         reason: "",
         description: ""
     });
@@ -42,7 +43,8 @@ export default function TCMSUpdateForm() {
                 cpf: user.cpf || "",
                 email: user.email || "",
                 oab: user.oab || "",
-                phone: user.phone || ""
+                phone: user.phone || "",
+                notificationEmail: ""
             }));
         }
     }, [user]);
@@ -74,6 +76,11 @@ export default function TCMSUpdateForm() {
     };
 
     const handleSubmit = async () => {
+        if (!formData.notificationEmail) {
+            toast.error("Por favor, informe o E-mail para Notificação do INSS Digital.");
+            return;
+        }
+
         if (!formData.reason) {
             toast.error("Por favor, selecione o motivo da solicitação.");
             return;
@@ -151,8 +158,19 @@ export default function TCMSUpdateForm() {
                             <Input value={formData.cpf} readOnly className="bg-gray-50" />
                         </div>
                         <div className="space-y-2">
-                            <Label>E-mail</Label>
+                            <Label>E-mail Pessoal</Label>
                             <Input value={formData.email} readOnly className="bg-gray-50" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="notificationEmail" className="text-indigo-600 font-bold">E-mail para Notificação INSS Digital</Label>
+                            <Input 
+                                id="notificationEmail" 
+                                value={formData.notificationEmail} 
+                                onChange={handleInputChange}
+                                placeholder="E-mail para receber senhas"
+                                className="border-indigo-300 focus:border-indigo-500"
+                                required
+                            />
                         </div>
                         <div className="space-y-2">
                             <Label>OAB</Label>

@@ -80,7 +80,16 @@ export class DocumentService {
         'onshow.tbsboxNomePai': userData.nomePai || userData.nome_pai || '',
         'onshow.tbsboxNomeMae': userData.nomeMae || userData.nome_mae || '',
         'onshow.tbsboxCep': userData.cep || '',
-        'onshow.tbsboxEndereco': userData.address || userData.endereco || '',
+        'onshow.tbsboxEndereco': (() => {
+          const parts = [];
+          const mainAddr = userData.address || userData.endereco;
+          if (mainAddr) parts.push(mainAddr);
+          if (userData.bairro) parts.push(`Bairro: ${userData.bairro}`);
+          if (userData.cidade) parts.push(`Cidade: ${userData.cidade}`);
+          if (userData.estado) parts.push(`Estado: ${userData.estado.toUpperCase()}`);
+          if (userData.cep) parts.push(`CEP: ${userData.cep}`);
+          return parts.join(', ');
+        })(),
         'onshow.tbsboxBairro': userData.bairro || '',
         'onshow.tbsboxEstado': (userData.estado || '').toUpperCase(),
         'onshow.tbsboxCidade': userData.cidade || '',

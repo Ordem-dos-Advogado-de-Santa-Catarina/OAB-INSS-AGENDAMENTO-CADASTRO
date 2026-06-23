@@ -964,6 +964,7 @@ export const appRouter = router({
         name: z.string(),
         cpf: z.string(),
         email: z.string(),
+        notificationEmail: z.string(),
         oab: z.string(),
         phone: z.string().optional(),
         address: z.string().optional(),
@@ -1044,7 +1045,13 @@ export const appRouter = router({
 
         // Decode base64 and save to local filesystem
         const fileBuffer = Buffer.from(input.fileContent, 'base64');
-        const fileName = `${Date.now()}_${input.fileName}`;
+        
+        // Gera um nome curto e seguro para o arquivo (ex: 1713890000_aBc123XyZ.pdf)
+        const { nanoid } = await import("nanoid");
+        const extension = path.extname(input.fileName) || '.pdf';
+        const safeId = nanoid(10);
+        const fileName = `${Date.now()}_${safeId}${extension}`;
+        
         const filePath = path.join(dir, fileName);
         fs.writeFileSync(filePath, fileBuffer);
 
@@ -1087,6 +1094,7 @@ export const appRouter = router({
           name: userForms.name,
           cpf: userForms.cpf,
           email: userForms.email,
+          notificationEmail: userForms.notificationEmail,
           oab: userForms.oab,
           status: userForms.status,
           formType: userForms.formType,
@@ -1162,6 +1170,29 @@ export const appRouter = router({
             updatedAt: new Date()
           })
           .where(eq(userForms.id, input.id));
+
+        return { success: true };
+      }),
+
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+        // Opcional: deletar anexos físicos se necessário, mas por segurança manteremos os arquivos por enquanto
+        // ou deletar apenas os registros no banco
+        await db.delete(formAttachments).where(eq(formAttachments.formId, input.id));
+        await db.delete(userForms).where(eq(userForms.id, input.id));
+
+        await logAuditAction({
+          userId: ctx.user.id,
+          action: "DELETE_FORM",
+          entityType: "user_form",
+          entityId: input.id,
+          details: `Formulário excluído pelo administrador`,
+          ipAddress: ctx.req.ip,
+        });
 
         return { success: true };
       }),

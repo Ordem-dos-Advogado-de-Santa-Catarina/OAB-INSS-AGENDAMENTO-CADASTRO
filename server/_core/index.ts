@@ -56,6 +56,12 @@ async function startServer() {
   }
   app.use("/uploads", express.static(uploadsDir));
 
+  // Serve public documents
+  const docsDir = path.join(process.cwd(), "client/public/documents");
+  if (fs.existsSync(docsDir)) {
+    app.use("/documents", express.static(docsDir));
+  }
+
   // tRPC API
   app.use(
     "/api/trpc",

@@ -221,6 +221,7 @@ export const userForms = mysqlTable("user_forms", {
   name: text("NAME").notNull(),
   cpf: varchar("CPF", { length: 14 }).notNull(),
   email: varchar("EMAIL", { length: 320 }).notNull(),
+  notificationEmail: varchar("NOTIFICATIONEMAIL", { length: 320 }).notNull(),
   oab: varchar("OAB", { length: 20 }).notNull(),
   phone: varchar("PHONE", { length: 20 }),
   address: text("ADDRESS"),

@@ -34,7 +34,8 @@ export default function UserForm() {
     cep: "",
     bairro: "",
     cidade: "",
-    estado: ""
+    estado: "",
+    notificationEmail: ""
   });
 
   const [step, setStep] = useState(1); // 1: Confirmar Dados, 2: Gerar/Assinar, 3: Anexar/Enviar
@@ -42,6 +43,12 @@ export default function UserForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Queries e Mutations
+  const myFormsQuery = trpc.forms.getMine.useQuery(undefined, {
+    enabled: !!user
+  });
+
+  const hasInitialForm = myFormsQuery.data?.some(f => f.formType === "initial" && (f.status === "submitted" || f.status === "approved"));
+
   const createFormMutation = trpc.forms.create.useMutation();
   const uploadFileMutation = trpc.forms.uploadFile.useMutation();
   const submitFormMutation = trpc.forms.submit.useMutation();
@@ -74,16 +81,56 @@ export default function UserForm() {
         cep: (user as any).cep || "",
         bairro: (user as any).bairro || "",
         cidade: (user as any).cidade || "",
-        estado: (user as any).estado || ""
+        estado: (user as any).estado || "",
+        notificationEmail: ""
       });
     }
   }, [user]);
 
-  if (loading) {
+  if (loading || myFormsQuery.isLoading) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-96">
           <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (hasInitialForm) {
+    return (
+      <DashboardLayout>
+        <div className="max-w-2xl mx-auto mt-12">
+          <Card className="border-t-4 border-t-indigo-600">
+            <CardHeader>
+              <div className="flex items-center gap-3 text-indigo-600 mb-2">
+                <CheckCircle2 className="h-8 w-8" />
+                <CardTitle className="text-2xl">Cadastro já Realizado</CardTitle>
+              </div>
+              <CardDescription className="text-base">
+                Identificamos que você já possui um cadastro TCMS enviado ou aprovado em nosso sistema.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-gray-600 leading-relaxed">
+                Não é permitido realizar um novo cadastramento. Se você precisa solicitar atualizações, inclusão de novos serviços ou tratar de assuntos relacionados ao <strong>INSS Digital</strong>, utilize a opção de <strong>Solicitação TCMS</strong>.
+              </p>
+              <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100 flex items-start gap-3">
+                <Info className="h-5 w-5 text-indigo-600 mt-0.5" />
+                <div className="text-sm text-indigo-900">
+                  Para acompanhar o status do seu cadastro atual, acesse <strong>Status do Cadastro</strong> no menu lateral.
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                <Button className="flex-1 bg-indigo-600 hover:bg-indigo-700" onClick={() => navigate("/forms/tcms")}>
+                  Ir para Solicitação TCMS
+                </Button>
+                <Button variant="outline" className="flex-1" onClick={() => navigate("/forms/status")}>
+                  Ver Status do Cadastro
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </DashboardLayout>
     );
@@ -140,6 +187,11 @@ export default function UserForm() {
     console.log("Iniciando submissão do formulário...");
     console.log("Arquivos anexados:", attachments.length);
     
+    if (!formData.notificationEmail) {
+      toast.error("Por favor, informe o E-mail para Notificação do INSS Digital.");
+      return;
+    }
+
     if (attachments.length < 3) {
       toast.error("Por favor, anexe os 3 documentos assinados");
       return;
@@ -254,9 +306,9 @@ export default function UserForm() {
               <div className="p-3 bg-gray-50 rounded-lg border">
                 <p className="font-semibold mb-1">Documentos Importantes</p>
                 <div className="space-x-3">
-                  <a href="https://oabsc.s3.sa-east-1.amazonaws.com/arquivo/update/331_58_5aa92e9445237.doc" className="text-indigo-600 hover:underline">Termo de Responsabilidade</a>
+                  <a href="/documents/termo_de_responsabilidade.doc" download className="text-indigo-600 hover:underline">Termo de Responsabilidade</a>
                   <span>e</span>
-                  <a href="https://oabsc.s3.sa-east-1.amazonaws.com/arquivo/update/termoderepresentacao.doc" className="text-indigo-600 hover:underline">Termo de Representação</a>
+                  <a href="/documents/termo_de_representacao.doc" download className="text-indigo-600 hover:underline">Termo de Representação</a>
                 </div>
               </div>
             </div>
@@ -299,8 +351,19 @@ export default function UserForm() {
                   <Input id="name" value={formData.name} onChange={handleInputChange} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email">E-MAIL</Label>
+                  <Label htmlFor="email">E-MAIL PESSOAL</Label>
                   <Input id="email" value={formData.email} onChange={handleInputChange} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="notificationEmail" className="text-indigo-600 font-bold">E-MAIL PARA NOTIFICAÇÃO DO INSS DIGITAL</Label>
+                  <Input 
+                    id="notificationEmail" 
+                    value={formData.notificationEmail} 
+                    onChange={handleInputChange} 
+                    placeholder="E-mail onde receberá as senhas do INSS"
+                    className="border-indigo-300 focus:border-indigo-500"
+                    required
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="nacionalidade">NACIONALIDADE</Label>

@@ -309,6 +309,23 @@ export class EmailService {
   }
 
   /**
+   * Envia um email genérico (adiciona à fila)
+   */
+  async sendEmail(data: {
+    to: string;
+    subject: string;
+    body: string;
+    type?: string;
+  }): Promise<void> {
+    await this.queueEmail({
+      toEmail: data.to,
+      subject: data.subject,
+      body: data.body,
+      emailType: data.type || "generic",
+    });
+  }
+
+  /**
    * Envia relatório diário de agendamentos para administradores
    */
   async sendDailyReport(data: {

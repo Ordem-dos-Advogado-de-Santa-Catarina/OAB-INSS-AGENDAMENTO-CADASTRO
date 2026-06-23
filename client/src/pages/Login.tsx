@@ -58,7 +58,7 @@ export default function Login() {
             alt="Cartão OAB" 
             className="w-64 h-auto mb-6 drop-shadow-xl animate-in fade-in zoom-in duration-700"
           />
-          <h2 className="text-2xl font-bold mb-2">Sistema de Agendamento</h2>
+          <h2 className="text-2xl font-bold mb-2">Sistema OAB/SC convenio INSS</h2>
           <p className="text-blue-100 opacity-80 max-w-xs">
             Acesso exclusivo para advogados(as) regularmente inscritos(as) na OAB/SC.
           </p>
