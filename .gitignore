@@ -9,10 +9,12 @@ build/
 
 # Environment variables
 .env
+.env.*
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+!.env.example
 
 # IDE and editor files
 .vscode/
@@ -39,12 +41,14 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Runtime data
+# Runtime data and backups
 pids
 *.pid
 *.seed
 *.pid.lock
 *.bak
+*.old
+*.recent
 
 # Coverage directory used by tools like istanbul
 coverage/
@@ -74,8 +78,13 @@ jspm_packages/
 # Optional REPL history
 .node_repl_history
 
-# Output of 'npm pack'
+# Output of 'npm pack' and archives
 *.tgz
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
 
 # Yarn Integrity file
 .yarn-integrity
@@ -101,10 +110,20 @@ jspm_packages/
 tmp/
 temp/
 
-# Database
+# Database and SQL dumps
 *.db
 *.sqlite
 *.sqlite3
+*.sql
+*.dump
+
+# User uploads and runtime files
+server/uploads/*
+!server/uploads/.gitkeep
+/uploads/
+
+# Legacy sensitive scripts/data
+server/scripts/legacy_data.json
 
 # Webdev artifacts (checkpoint zips, migrations, etc.)
 .webdev/
