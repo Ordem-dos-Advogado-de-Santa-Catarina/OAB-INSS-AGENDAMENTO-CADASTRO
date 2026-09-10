@@ -17,12 +17,12 @@
 
 O **Sistema de Agendamento OAB/SC - Convênio INSS** é uma plataforma desenvolvida para gerenciar o agendamento de atendimentos e cadastros de advogados no âmbito do acordo de cooperação técnica entre a Ordem dos Advogados do Brasil - Seccional Santa Catarina e o Instituto Nacional do Seguro Social (INSS).
 
-A plataforma conta com autenticação integrada ao webservice SOAP institucional da OAB/SC, contingência local para indisponibilidade, formulários digitais de TCMS com upload de anexos, controle de limites mensais de agendamento e módulo de gestão administrativa.
+A plataforma conta com autenticação integrada ao webservice BRC (API) institucional da OAB/SC, contingência local para indisponibilidade, formulários digitais de TCMS com upload de anexos, controle de limites mensais de agendamento e módulo de gestão administrativa.
 
 ### Funcionalidades
 
 * **Autenticação Institucional:**
-  * Validação de credenciais diretamente no webservice SOAP usando o BRC.
+  * Validação de credenciais diretamente no webservice BRC (API) usando o BRC.
   * Validação de inscrição ativa e número de registro no Conselho.
   * Mecanismo de fallback local para tolerância a falhas na indisponibilidade do webservice externo.
   * Restrição de acesso a advogados regularmente inscritos e administradores pré-autorizados.
@@ -50,7 +50,7 @@ Para executar a aplicação em ambiente operacional ou de homologação, certifi
 * Docker (versão 20.10 ou superior) instalado.
 * Docker Compose (v2 ou superior) instalado.
 * Conectividade com a base de dados MySQL (servidor dedicado ou container).
-* Conectividade de rede com o webservice SOAP da OAB/SC (`https://servicos.oab-sc.org.br/WSAutenticar/WSAutenticar.asmx`).
+* Conectividade de rede com o webservice BRC (API) da OAB/SC (`https://servicos.oab-sc.org.br/WSAutenticar/WSAutenticar.asmx`).
 * Porta `3940` (ou porta configurada) liberada no host.
 
 ---
@@ -154,7 +154,7 @@ Todas as definições operacionais são gerenciadas por variáveis de ambiente v
 | `JWT_SECRET` | String | Chave de assinatura de tokens JWT | `string_aleatoria_longa` |
 | `COOKIE_SECRET` | String | Chave de assinatura para cookies seguros | `string_aleatoria_longa` |
 | `APP_ID` | String | Identificador da aplicação no ecossistema | `agendamento-inss` |
-| `SOAP_AUTH_URL` | String | URL do endpoint SOAP de autenticação | `https://servicos.oab-sc.org.br/WSAutenticar/WSAutenticar.asmx` |
+| `BRC (API)_AUTH_URL` | String | URL do endpoint BRC (API) de autenticação | `https://servicos.oab-sc.org.br/WSAutenticar/WSAutenticar.asmx` |
 
 ### Exemplo de `.env`
 
@@ -169,7 +169,7 @@ JWT_SECRET=#lmjmMJ2484#$22
 COOKIE_SECRET=#lmjmMJ2484#$22
 
 APP_ID=agendamento-inss
-SOAP_AUTH_URL=https://servicos.oab-sc.org.br/WSAutenticar/WSAutenticar.asmx
+BRC (API)_AUTH_URL=https://servicos.oab-sc.org.br/WSAutenticar/WSAutenticar.asmx
 ```
 
 *Nota: As configurações de SMTP para disparo de e-mails são gerenciadas diretamente no painel administrativo em `/admin/settings` e persistidas na tabela `system_settings`.*
@@ -193,7 +193,7 @@ SOAP_AUTH_URL=https://servicos.oab-sc.org.br/WSAutenticar/WSAutenticar.asmx
                  │                                 │
                  ▼                                 ▼
       ┌──────────────────────┐          ┌──────────────────────┐
-      │ Webservice SOAP OAB  │          │  Autenticação Local  │
+      │ Webservice BRC (API) OAB  │          │  Autenticação Local  │
       │   (Validação Ativa)  │          │ (Fallback / Admins)  │
       └──────────┬───────────┘          └──────────┬───────────┘
                  │                                 │
@@ -236,7 +236,7 @@ SOAP_AUTH_URL=https://servicos.oab-sc.org.br/WSAutenticar/WSAutenticar.asmx
 ├── server/                     # Backend Node.js / Express
 │   ├── _core/                  # Infraestrutura base (context, SDK, cookies)
 │   ├── scripts/                # Utilitários CLI (criação de admin)
-│   ├── services/               # Serviços de negócio (SOAP, LocalAuth, E-mail)
+│   ├── services/               # Serviços de negócio (BRC (API), LocalAuth, E-mail)
 │   ├── db.ts                   # Camada de acesso e queries ao banco
 │   └── routers.ts              # Definição de routers e procedures tRPC
 ├── drizzle/                    # Esquema do banco de dados Drizzle ORM
