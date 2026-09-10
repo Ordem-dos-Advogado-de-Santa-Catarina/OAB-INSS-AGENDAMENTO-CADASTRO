@@ -148,7 +148,12 @@ export default function UserForm() {
 
   const handleGenerateDoc = async (templateType: TemplateType) => {
     try {
-      const data = await generateDocMutation.mutateAsync({ templateType });
+      const data = await generateDocMutation.mutateAsync({ 
+        templateType,
+        customData: {
+          notificationEmail: formData.notificationEmail
+        }
+      });
       const byteCharacters = atob(data.content);
       const byteNumbers = new Array(byteCharacters.length);
       for (let i = 0; i < byteCharacters.length; i++) {

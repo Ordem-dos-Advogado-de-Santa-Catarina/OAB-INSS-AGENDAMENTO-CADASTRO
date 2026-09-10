@@ -32,6 +32,7 @@ const menuItems = [
   { icon: FileText, label: "Cadastro OAB INSS", path: "/forms/new" },
   { icon: ClipboardList, label: "Solicitação TCMS", path: "/forms/tcms" },
   { icon: CheckCircle, label: "Status Cadastro INSS", path: "/forms/status" },
+  { icon: FileText, label: "Escritas Documentos", path: "/documentos" },
   { icon: CalendarDays, label: "Meus Agendamentos", path: "/my-appointments" },
   { icon: MessageSquare, label: "Mensagens", path: "/messages" },
 ];

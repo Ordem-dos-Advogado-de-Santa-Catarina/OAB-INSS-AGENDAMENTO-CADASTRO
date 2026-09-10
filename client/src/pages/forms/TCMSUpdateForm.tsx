@@ -13,6 +13,8 @@ import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 
+type TemplateType = 'ANEXO_II' | 'DECLARACAO_BOAS_PRATICAS' | 'TERMO_ACEITE';
+
 export default function TCMSUpdateForm() {
     const { user, loading } = useAuth();
     const [, navigate] = useLocation();
@@ -34,6 +36,7 @@ export default function TCMSUpdateForm() {
     const createFormMutation = trpc.forms.create.useMutation();
     const uploadFileMutation = trpc.forms.uploadFile.useMutation();
     const submitFormMutation = trpc.forms.submit.useMutation();
+    const generateDocMutation = trpc.documents.generateMyDocument.useMutation();
 
     useEffect(() => {
         if (user) {
@@ -72,6 +75,42 @@ export default function TCMSUpdateForm() {
                 return [...filtered, { file, type }];
             });
             toast.success(`Arquivo selecionado com sucesso.`);
+        }
+    };
+
+    const handleGenerateDoc = async (templateType: TemplateType) => {
+        if (!formData.notificationEmail) {
+            toast.error("Por favor, informe o E-mail para Notificação do INSS Digital antes de gerar o documento.");
+            return;
+        }
+
+        try {
+            const data = await generateDocMutation.mutateAsync({ 
+                templateType,
+                customData: {
+                    notificationEmail: formData.notificationEmail
+                }
+            });
+            const byteCharacters = atob(data.content);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: data.contentType });
+            
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = data.filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            
+            toast.success(`Documento gerado com sucesso!`);
+        } catch (error: any) {
+            toast.error(`Erro ao gerar documento: ${error.message || "Erro desconhecido"}`);
         }
     };
 
@@ -199,6 +238,7 @@ export default function TCMSUpdateForm() {
                                     <SelectItem value="Mudança de Nome/Sobrenome">Mudança de Nome/Sobrenome</SelectItem>
                                     <SelectItem value="Correção de Dados Cadastrais">Correção de Dados Cadastrais</SelectItem>
                                     <SelectItem value="Envio de Documentação Complementar">Envio de Documentação Complementar</SelectItem>
+                                    <SelectItem value="Atualização de Documento">Atualização de Documento</SelectItem>
                                     <SelectItem value="Outros">Outros (especificar abaixo)</SelectItem>
                                 </SelectContent>
                             </Select>
@@ -217,12 +257,34 @@ export default function TCMSUpdateForm() {
 
                         <div className="space-y-4 pt-4 border-t">
                             <Label className="text-lg font-semibold">Documentação Comprobatória</Label>
+                            
+                            {formData.reason === "Atualização de Documento" && (
+                                <Alert className="bg-amber-50 border-amber-200 mb-4">
+                                    <AlertCircle className="h-4 w-4 text-amber-600" />
+                                    <AlertDescription className="text-amber-900 text-sm">
+                                        Para este motivo, é necessário gerar o modelo abaixo, assiná-lo e anexá-lo como <strong>Anexo II TCMS</strong>.
+                                        <div className="mt-2">
+                                            <Button 
+                                                variant="outline" 
+                                                size="sm" 
+                                                className="border-amber-300 hover:bg-amber-100"
+                                                onClick={() => handleGenerateDoc('ANEXO_II')}
+                                                disabled={generateDocMutation.isPending}
+                                            >
+                                                {generateDocMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <FileText className="h-4 w-4 mr-2" />}
+                                                Gerar ANEXO II TCMS - Modelo OAB
+                                            </Button>
+                                        </div>
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <Label>Documento Principal (PDF)</Label>
+                                    <Label>{formData.reason === "Atualização de Documento" ? "Anexo II TCMS Assinado (PDF)" : "Documento Principal (PDF)"}</Label>
                                     <div className="flex items-center gap-3">
-                                        <Input type="file" accept=".pdf" onChange={(e) => handleFileChange(e, "tcms_main_doc")} />
-                                        {attachments.some(a => a.type === "tcms_main_doc") && <CheckCircle2 className="text-green-500 h-5 w-5" />}
+                                        <Input type="file" accept=".pdf" onChange={(e) => handleFileChange(e, formData.reason === "Atualização de Documento" ? "signed_doc_1" : "tcms_main_doc")} />
+                                        {attachments.some(a => a.type === (formData.reason === "Atualização de Documento" ? "signed_doc_1" : "tcms_main_doc")) && <CheckCircle2 className="text-green-500 h-5 w-5" />}
                                     </div>
                                 </div>
                                 <div className="space-y-2">

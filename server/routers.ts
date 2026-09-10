@@ -340,7 +340,8 @@ export const appRouter = router({
   documents: router({
     generateMyDocument: protectedProcedure
       .input(z.object({
-        templateType: z.enum(['ANEXO_II', 'DECLARACAO_BOAS_PRATICAS', 'TERMO_ACEITE'])
+        templateType: z.string(),
+        customData: z.any().optional()
       }))
       .mutation(async ({ input, ctx }) => {
         try {
@@ -350,6 +351,12 @@ export const appRouter = router({
           const fullUser = await getUserByCPF(user.cpf);
           if (!fullUser) throw new TRPCError({ code: "NOT_FOUND", message: "Usuário não encontrado" });
 
+          // Mescla os dados do banco com os dados enviados pelo frontend (ex: notificationEmail)
+          const dataForTemplate = {
+            ...fullUser,
+            ...(input.customData || {})
+          };
+
           // Mapeia o nome do arquivo com base no template
           const filenames: Record<string, string> = {
             ANEXO_II: 'ANEXO_II_TCMS_modelo_OAB',
@@ -357,7 +364,7 @@ export const appRouter = router({
             TERMO_ACEITE: 'Termo_de_aceite_do_ACT'
           };
 
-          const buffer = await documentService.generatePDF(input.templateType, fullUser);
+          const buffer = await documentService.generatePDF(input.templateType as any, dataForTemplate);
 
           return {
             filename: `${filenames[input.templateType]}_${fullUser.name.replace(/\s+/g, '_')}.pdf`,
@@ -1191,7 +1198,58 @@ export const appRouter = router({
           entityType: "user_form",
           entityId: input.id,
           details: `Formulário excluído pelo administrador`,
-          ipAddress: ctx.req.ip,
+        });
+
+        return { success: true };
+      }),
+
+    deleteAttachment: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+        // 1. Buscar informações do anexo
+        const attachment = await db
+          .select()
+          .from(formAttachments)
+          .where(eq(formAttachments.id, input.id))
+          .limit(1);
+
+        if (!attachment.length) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Anexo não encontrado" });
+        }
+
+        const att = attachment[0];
+
+        // 2. Tentar deletar o arquivo físico
+        try {
+          const fs = await import("fs");
+          const path = await import("path");
+          
+          // O fileUrl é algo como "/uploads/123/filename.pdf"
+          // Precisamos converter para o caminho absoluto no disco
+          const relativePath = att.fileUrl.startsWith('/') ? att.fileUrl.substring(1) : att.fileUrl;
+          const absolutePath = path.join(process.cwd(), "server", relativePath);
+
+          if (fs.existsSync(absolutePath)) {
+            fs.unlinkSync(absolutePath);
+          }
+        } catch (err) {
+          console.error(`[Admin] Erro ao deletar arquivo físico do anexo ${input.id}:`, err);
+          // Continuamos para deletar do banco mesmo se falhar no disco
+        }
+
+        // 3. Deletar registro do banco
+        await db.delete(formAttachments).where(eq(formAttachments.id, input.id));
+
+        // 4. Logar ação
+        await logAuditAction({
+          userId: ctx.user.id,
+          action: "DELETE_ATTACHMENT",
+          entityType: "form_attachment",
+          entityId: input.id,
+          details: `Anexo '${att.fileName}' removido pelo administrador`,
         });
 
         return { success: true };

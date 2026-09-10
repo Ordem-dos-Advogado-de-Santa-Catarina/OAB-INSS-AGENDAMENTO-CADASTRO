@@ -20,6 +20,7 @@ import TCMSUpdateForm from "./pages/forms/TCMSUpdateForm";
 import FormStatus from "./pages/FormStatus";
 import FormDetailsView from "./pages/forms/FormDetailsView";
 import AdminFormsList from "./pages/admin/forms/AdminFormsList";
+import DocumentosEscritas from "./pages/DocumentosEscritas";
 
 function Router() {
   return (
@@ -30,6 +31,7 @@ function Router() {
       <Route path={"/forms/new"} component={UserForm} />
       <Route path={"/forms/tcms"} component={TCMSUpdateForm} />
       <Route path={"/forms/status"} component={FormStatus} />
+      <Route path={"/documentos"} component={DocumentosEscritas} />
       <Route path={"/forms/view/:id"} component={FormDetailsView} />
       <Route path={"/my-appointments"} component={MyAppointments} />
       <Route path={"/messages"} component={Messages} />

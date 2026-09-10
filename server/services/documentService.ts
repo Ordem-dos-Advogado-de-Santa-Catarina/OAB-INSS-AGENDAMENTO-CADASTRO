@@ -68,7 +68,7 @@ export class DocumentService {
 
       const mapping: Record<string, string> = {
         'onshow.tbsboxNome': userData.name || userData.nome || '',
-        'onshow.tbsboxEmail': userData.email || '',
+        'onshow.tbsboxEmail': userData.notificationEmail || userData.email || '',
         'onshow.tbsboxNacionalidade': userData.nacionalidade || 'Brasileiro(a)',
         'onshow.tbsboxOab': userData.oab || '',
         'onshow.tbsboxOAB': userData.oab || '',
@@ -117,6 +117,8 @@ export class DocumentService {
       for (const [key, value] of Object.entries(mapping)) {
         if (key === 'onshow.tbsboxEmail') {
           const val = this.escapeXml(String(value));
+          // Esta lógica parece ser para corrigir uma possível inconsistência no template ODT
+          // Mantendo a lógica de substituição de email para mail se necessário
           content = content.split(`email${val}`).join(`mail${val}`);
         }
       }

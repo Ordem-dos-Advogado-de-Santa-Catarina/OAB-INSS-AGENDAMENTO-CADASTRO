@@ -74,6 +74,16 @@ export default function AdminFormsList() {
     }
   });
 
+  const deleteAttachmentMutation = trpc.forms.deleteAttachment.useMutation({
+    onSuccess: () => {
+      formDetailQuery.refetch();
+      toast.success("Documento removido com sucesso");
+    },
+    onError: (error) => {
+      toast.error("Erro ao remover documento: " + error.message);
+    },
+  });
+
   if (loading || formsQuery.isLoading) {
     return (
       <DashboardLayout>
@@ -413,12 +423,40 @@ export default function AdminFormsList() {
                                               <p className="text-[10px] text-indigo-600 uppercase font-bold tracking-tight">{getFriendlyFileName(att.fileType)}</p>
                                             </div>
                                           </div>
-                                          <Button variant="outline" size="sm" className="shrink-0 bg-white hover:bg-indigo-50 hover:text-indigo-700 border-gray-200" asChild>
-                                            <a href={att.fileUrl} target="_blank" rel="noopener noreferrer">
-                                              <Download className="h-4 w-4 md:mr-2" />
-                                              <span className="hidden md:inline">Baixar</span>
-                                            </a>
-                                          </Button>
+                                          <div className="flex items-center gap-2 shrink-0">
+                                            <Button variant="outline" size="sm" className="bg-white hover:bg-indigo-50 hover:text-indigo-700 border-gray-200" asChild>
+                                              <a href={att.fileUrl} target="_blank" rel="noopener noreferrer">
+                                                <Download className="h-4 w-4 md:mr-2" />
+                                                <span className="hidden md:inline">Baixar</span>
+                                              </a>
+                                            </Button>
+                                            
+                                            <AlertDialog>
+                                              <AlertDialogTrigger asChild>
+                                                <Button variant="outline" size="sm" className="bg-white hover:bg-red-50 hover:text-red-600 border-gray-200 text-gray-500">
+                                                  <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                              </AlertDialogTrigger>
+                                              <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                  <AlertDialogTitle>Remover Documento?</AlertDialogTitle>
+                                                  <AlertDialogDescription>
+                                                    Tem certeza que deseja remover o documento <strong>{att.fileName}</strong>? 
+                                                    Esta ação não pode ser desfeita e o arquivo será excluído permanentemente.
+                                                  </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                  <AlertDialogAction 
+                                                    className="bg-red-600 hover:bg-red-700"
+                                                    onClick={() => deleteAttachmentMutation.mutate({ id: att.id })}
+                                                  >
+                                                    {deleteAttachmentMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Remover"}
+                                                  </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                              </AlertDialogContent>
+                                            </AlertDialog>
+                                          </div>
                                         </div>
                                       ))
                                     ) : (
