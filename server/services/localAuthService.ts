@@ -159,12 +159,16 @@ export class LocalAuthService {
           authMethod: 'soap'
         };
       } else {
-        // SOAP retornou erro de credenciais - tentar fallback local (pode ser um usuário local_admin)
-        console.log('[LocalAuth] SOAP falhou, tentando autenticação local...');
-        const localResult = await this.authenticateLocal(cpf, password);
-        
-        if (localResult.success) {
-          return localResult;
+        // SOAP respondeu ativamente rejeitando credenciais.
+        // Tentar autenticação local APENAS se for um usuário administrativo pré-cadastrado no banco (local_admin / admin).
+        // Isso impede que advogados com senhas antigas em cache consigam entrar se a senha foi alterada/revogada na OAB.
+        const localUser = await getUserByCPF(cpf);
+        if (localUser && (localUser.role === 'admin' || localUser.loginMethod === 'local_admin') && localUser.passwordHash) {
+          console.log('[LocalAuth] Usuário administrativo local detectado, tentando autenticação local...');
+          const localResult = await this.authenticateLocal(cpf, password);
+          if (localResult.success) {
+            return localResult;
+          }
         }
 
         return {

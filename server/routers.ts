@@ -261,13 +261,26 @@ export const appRouter = router({
             });
           }
 
-          let user = await getUserByCPF(userData.cpf);
+          // Verifica se o usuário já existe previamente no banco
+          let existingUser = await getUserByCPF(userData.cpf);
+          const isExistingAdmin = existingUser?.role === 'admin';
+
+          // Validação obrigatória:
+          // Se NÃO for admin pré-cadastrado no banco, é OBRIGATÓRIO possuir inscrição OAB ativa
+          const hasValidOab = Boolean(userData.oab && userData.oab.trim() !== '' && userData.oab.trim() !== '0');
+          if (!isExistingAdmin && !hasValidOab) {
+            throw new TRPCError({
+              code: 'FORBIDDEN',
+              message: 'Acesso restrito a advogados(as) inscritos(as) na OAB/SC. Em caso de dúvidas, contate a Central de Atendimento pelo WhatsApp: (48) 3239-3500.',
+            });
+          }
+
           const { upsertUser } = await import("./db.js");
 
           const userPayload = {
             openId: authResult.authMethod === 'soap' ? `soap_${userData.cpf}` : `local_${userData.cpf}`,
             cpf: userData.cpf,
-            oab: userData.oab,
+            oab: hasValidOab ? userData.oab.trim() : (existingUser?.oab || `LOCAL_${userData.cpf.replace(/\D/g, '')}`),
             name: userData.nome,
             email: userData.email,
             cep: userData.cep,
@@ -280,13 +293,13 @@ export const appRouter = router({
             rg: userData.rg,
             orgaoRg: userData.orgao_rg,
             dataExpedicaoRg: userData.data_expedicao_rg,
-            loginMethod: authResult.authMethod === 'soap' ? "soap" : (user?.loginMethod || "local_admin"),
-            role: user?.role, // Preserva a role se o usuário já existir
+            loginMethod: authResult.authMethod === 'soap' ? "soap" : (existingUser?.loginMethod || "local_admin"),
+            role: (isExistingAdmin ? 'admin' : 'user') as "admin" | "user",
             lastSignedIn: new Date(),
           };
 
           await upsertUser(userPayload);
-          user = await getUserByCPF(userData.cpf);
+          let user = await getUserByCPF(userData.cpf);
 
           if (!user) {
             throw new TRPCError({

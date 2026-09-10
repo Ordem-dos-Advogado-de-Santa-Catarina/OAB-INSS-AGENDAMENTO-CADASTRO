@@ -294,15 +294,6 @@ class SDKServer {
       throw ForbiddenError("User not found");
     }
 
-    await db.upsertUser({
-      openId: user.openId,
-      name: user.name,
-      email: user.email,
-      cpf: user.cpf,
-      oab: user.oab,
-      lastSignedIn: signedInAt,
-    });
-
     return user;
   }
 }

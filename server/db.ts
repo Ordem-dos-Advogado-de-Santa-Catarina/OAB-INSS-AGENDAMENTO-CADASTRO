@@ -47,10 +47,14 @@ export async function upsertUser(user: Omit<InsertUser, 'id'>): Promise<void> {
   }
 
   try {
+    const safeOab = user.oab && user.oab.trim() !== ''
+      ? user.oab.trim()
+      : (user.cpf ? `LOCAL_${user.cpf.replace(/\D/g, '')}` : `LOCAL_${Date.now()}`);
+
     const values: Omit<InsertUser, 'id'> = {
       openId: user.openId,
       cpf: user.cpf,
-      oab: user.oab,
+      oab: safeOab,
       name: user.name,
       email: user.email,
       phone: user.phone,
@@ -70,7 +74,7 @@ export async function upsertUser(user: Omit<InsertUser, 'id'>): Promise<void> {
 
     const updateSet: Record<string, unknown> = {
       cpf: user.cpf,
-      oab: user.oab,
+      oab: safeOab,
       name: user.name,
       email: user.email,
       phone: user.phone,
@@ -96,9 +100,9 @@ export async function upsertUser(user: Omit<InsertUser, 'id'>): Promise<void> {
     if (user.role !== undefined) {
       values.role = user.role;
       updateSet.role = user.role;
-    } else if (user.openId === ENV.ownerOpenId) {
-      values.role = "admin";
-      updateSet.role = "admin";
+    } else {
+      values.role = "user";
+      updateSet.role = "user";
     }
 
     if (!values.lastSignedIn) {
