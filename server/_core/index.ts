@@ -1,18 +1,23 @@
 import "dotenv/config";
 process.env.TZ = "America/Sao_Paulo";
 import express from "express";
+import helmet from "helmet";
 import path from "path";
 import fs from "fs";
 import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
-import { registerOAuthRoutes } from "./oauth.js";
+import {} from "./oauth.js";
 import { appRouter } from "../routers.js";
 import { createContext } from "./context.js";
 import { cronService } from "../services/cronService.js";
 import { emailWorker } from "../services/emailWorker.js";
 import { serveStatic, setupVite } from "./vite.js";
 import { seedEmailTemplates } from "../db.js";
+import { getDb, getUserForm } from "../db.js";
+import { formAttachments } from "../../drizzle/schema.js";
+import { eq } from "drizzle-orm";
+import { sdk } from "./sdk.js";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -41,6 +46,7 @@ async function startServer() {
   
   // CONFIGURAÇÃO CRUCIAL PARA HTTPS/PROXY REVERSO
   app.set("trust proxy", 1); 
+  app.use(helmet({ contentSecurityPolicy: false }));
 
   const server = createServer(app);
   // Configure body parser with larger size limit for file uploads
@@ -49,12 +55,31 @@ async function startServer() {
   // OAuth callback desativado por segurança (não utilizado em produção)
   // registerOAuthRoutes(app);
 
-  // Serve uploads directory
+  // Uploads are private; only the authenticated endpoint below may serve them.
   const uploadsDir = path.join(process.cwd(), "server/uploads");
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
   }
-  app.use("/uploads", express.static(uploadsDir));
+  app.get("/api/documents/:id", async (req, res) => {
+    try {
+      const user = await sdk.authenticateRequest(req);
+      const db = await getDb();
+      const attachmentId = Number(req.params.id);
+      if (!db || !Number.isSafeInteger(attachmentId)) return res.status(404).end();
+      const [attachment] = await db.select().from(formAttachments).where(eq(formAttachments.id, attachmentId)).limit(1);
+      if (!attachment) return res.status(404).end();
+      const form = await getUserForm(attachment.formId);
+      if (!form || (form.userId !== user.id && user.role !== "admin")) return res.status(403).end();
+      const relative = attachment.fileUrl.replace(/^\/+/, "");
+      const absolute = path.resolve(process.cwd(), "server", relative);
+      if (!absolute.startsWith(path.resolve(uploadsDir) + path.sep) || !fs.existsSync(absolute)) return res.status(404).end();
+      res.setHeader("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(attachment.fileName)}`);
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      return res.sendFile(absolute);
+    } catch {
+      return res.status(401).end();
+    }
+  });
 
   // Serve public documents
   const docsDir = path.join(process.cwd(), "client/public/documents");

@@ -1,5 +1,5 @@
 export const ENV = {
-  // AQUI ESTAVA O PROBLEMA: Adicionamos um valor fixo caso a vari·vel venha vazia
+  // AQUI ESTAVA O PROBLEMA: Adicionamos um valor fixo caso a vari√°vel venha vazia
   appId: process.env.VITE_APP_ID || "agendamento-inss-web", 
   
   cookieSecret: process.env.JWT_SECRET || process.env.SESSION_SECRET || "#lmjmMJ2484#$22",

@@ -95,7 +95,8 @@ describe("AppointmentValidationService", () => {
       tomorrow.setDate(tomorrow.getDate() + 1);
       tomorrow.setHours(10, 0, 0);
 
-      // Horário válido (09:00)
+      // Horário válido (09:00), usando uma data além do dia seguinte
+      tomorrow.setDate(tomorrow.getDate() + 1);
       const result = await service.validateDateTime(tomorrow, "09:00:00", 1);
 
       expect(result).toBeNull();
@@ -133,10 +134,14 @@ describe("AppointmentValidationService", () => {
         updatedAt: new Date(),
       } as any);
 
-      const result = await service.validateMonthlyLimit(1);
+      vi.mocked(db.getUserAppointments).mockResolvedValue([
+        { appointmentDate: new Date("2026-01-10"), status: "confirmed" },
+        { appointmentDate: new Date("2026-01-15"), status: "confirmed" },
+      ] as any);
+      const result = await service.validateMonthlyLimit(1, new Date("2026-01-20"));
 
       expect(result).not.toBeNull();
-      expect(result?.code).toBe("MONTHLY_LIMIT_EXCEEDED");
+      expect(result?.code).toBe("MONTHLY_LIMIT_EXCEEDED_WITH_QUARANTINE");
     });
 
     it("deve aceitar quando limite mensal não foi atingido", async () => {
@@ -169,7 +174,10 @@ describe("AppointmentValidationService", () => {
         updatedAt: new Date(),
       } as any);
 
-      const result = await service.validateMonthlyLimit(1);
+      vi.mocked(db.getUserAppointments).mockResolvedValue([
+        { appointmentDate: new Date("2026-01-10"), status: "confirmed" },
+      ] as any);
+      const result = await service.validateMonthlyLimit(1, new Date("2026-01-20"));
 
       expect(result).toBeNull();
     });

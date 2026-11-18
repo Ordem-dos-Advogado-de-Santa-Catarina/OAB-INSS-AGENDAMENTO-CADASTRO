@@ -10,11 +10,11 @@ import {
   emailQueue,
   systemSettings,
   emailTemplates,
-  appointmentMessages,
-  userForms,
+    userForms,
   formAttachments,
 } from "../drizzle/schema";
-import { ENV } from "./_core/env";
+import {} from "./_core/env";
+import { decryptSecret, encryptSecret } from "./_core/secrets";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -182,6 +182,33 @@ export async function createAppointment(data: {
 
   // Retorna apenas o ID inserido (insertId) para evitar problemas de serialização
   return (result as any).insertId as number;
+}
+
+export async function createAppointmentAtomically(data: {
+  userId: number;
+  appointmentDate: Date;
+  startTime: string;
+  endTime: string;
+  reason: string;
+  notes?: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return await db.transaction(async tx => {
+    const [existing] = await tx
+      .select({ id: appointments.id })
+      .from(appointments)
+      .where(and(eq(appointments.appointmentDate, data.appointmentDate), eq(appointments.startTime, data.startTime)))
+      .for("update");
+    if (existing) throw new Error("APPOINTMENT_SLOT_TAKEN");
+
+    const [result] = await tx.insert(appointments).values({ ...data, status: "confirmed" });
+    await tx.update(appointmentLimits)
+      .set({ appointmentsThisMonth: sql`appointmentsThisMonth + 1` })
+      .where(eq(appointmentLimits.userId, data.userId));
+    return (result as any).insertId as number;
+  });
 }
 
 export async function getUserAppointments(userId: number, limit = 50) {
@@ -466,14 +493,19 @@ export async function getSystemSettings() {
   if (!db) return null;
 
   const result = await db.select().from(systemSettings).limit(1);
-  return result.length > 0 ? result[0] : null;
+  if (result.length === 0) return null;
+  return { ...result[0], smtpPassword: decryptSecret(result[0].smtpPassword) };
 }
 
 export async function updateSystemSettings(data: Partial<typeof systemSettings.$inferInsert>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  return await db.update(systemSettings).set(data);
+  const update = { ...data };
+  if (typeof update.smtpPassword === "string" && update.smtpPassword.length > 0) {
+    update.smtpPassword = encryptSecret(update.smtpPassword);
+  }
+  return await db.update(systemSettings).set(update);
 }
 
 /**

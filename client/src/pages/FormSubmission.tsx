@@ -9,271 +9,89 @@ import { trpc } from '@/lib/trpc';
 import { useLocation } from 'wouter';
 
 const formatCPF = (cpf: string): string => {
-  if (!cpf) return '';
   const cleaned = cpf.replace(/\D/g, '');
-  if (cleaned.length === 11) {
-    return `${cleaned.substring(0, 3)}.${cleaned.substring(3, 6)}.${cleaned.substring(6, 9)}-${cleaned.substring(9)}`;
-  }
-  return cpf;
+  return cleaned.length === 11 ? `${cleaned.slice(0, 3)}.${cleaned.slice(3, 6)}.${cleaned.slice(6, 9)}-${cleaned.slice(9)}` : cpf;
 };
 
 interface UserData {
-  nome: string;
-  email: string;
-  cpf: string;
-  oab: string;
-  telefone: string;
-  endereco: string;
-  cep: string;
-  cidade: string;
-  estado: string;
-  bairro: string;
+  nome: string; email: string; cpf: string; oab: string; telefone: string;
+  endereco: string; cep: string; cidade: string; estado: string; bairro: string;
 }
 
 export default function FormSubmission() {
   const [userData, setUserData] = useState<UserData | null>(null);
-  const [formData, setFormData] = useState({
-    processNumber: '',
-    report: '',
-    defenderName: '',
-    contactPhone: '',
-    contactEmail: '',
-  });
+  const [formData, setFormData] = useState({ processNumber: '', report: '', defenderName: '', contactPhone: '', contactEmail: '' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [, setLocation] = useLocation();
 
   useEffect(() => {
     const stored = localStorage.getItem('userData');
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        setUserData(parsed);
-        setFormData(prev => ({
-          ...prev,
-          contactPhone: parsed.telefone,
-          contactEmail: parsed.email,
-        }));
-      } catch (e) {
-        console.error('Erro ao carregar dados do usuário:', e);
-        setLocation('/login');
-      }
-    } else {
+    if (!stored) { setLocation('/login'); return; }
+    try {
+      const parsed = JSON.parse(stored) as UserData;
+      setUserData(parsed);
+      setFormData((prev) => ({ ...prev, contactPhone: parsed.telefone || '', contactEmail: parsed.email || '' }));
+    } catch (parseError) {
+      console.error('Erro ao carregar dados do usuário:', parseError);
       setLocation('/login');
     }
   }, [setLocation]);
 
-  const submitFormMutation = trpc.forms.submit.useMutation({
-    onSuccess: (data) => {
-      if (data.success) {
-        setSuccess(true);
-        setTimeout(() => {
-          setLocation('/meus-formularios');
-        }, 2000);
-      } else {
-        setError(data.message || 'Erro ao enviar formulário');
-      }
-    },
-    onError: (error) => {
-      setError(error.message || 'Erro ao enviar formulário');
-    },
-  });
+  const createFormMutation = trpc.forms.create.useMutation();
+  const submitFormMutation = trpc.forms.submit.useMutation();
+  const isPending = createFormMutation.isPending || submitFormMutation.isPending;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setError('');
+    if (!userData) return;
+    if (!formData.processNumber.trim()) return setError('Número do processo é obrigatório');
+    if (formData.report.trim().length < 10) return setError('Relato deve ter no mínimo 10 caracteres');
+    if (!formData.defenderName.trim()) return setError('Nome do defensor é obrigatório');
+    if (!formData.contactPhone.trim()) return setError('Telefone de contato é obrigatório');
+    if (!formData.contactEmail.trim()) return setError('Email de contato é obrigatório');
 
-    if (!formData.processNumber.trim()) {
-      setError('Número do processo é obrigatório');
-      return;
+    try {
+      const created = await createFormMutation.mutateAsync({
+        name: userData.nome,
+        cpf: userData.cpf,
+        email: userData.email,
+        notificationEmail: formData.contactEmail,
+        oab: userData.oab,
+        phone: formData.contactPhone,
+        address: userData.endereco,
+        cep: userData.cep,
+        bairro: userData.bairro,
+        cidade: userData.cidade,
+        estado: userData.estado,
+        formType: 'initial',
+        reason: formData.processNumber,
+        description: `Defensor responsável: ${formData.defenderName}\n\n${formData.report}`,
+      });
+      await submitFormMutation.mutateAsync({ id: created.id });
+      setSuccess(true);
+      window.setTimeout(() => setLocation('/my-forms'), 2000);
+    } catch (mutationError) {
+      setError(mutationError instanceof Error ? mutationError.message : 'Erro ao enviar formulário');
     }
-
-    if (formData.report.trim().length < 10) {
-      setError('Relato deve ter no mínimo 10 caracteres');
-      return;
-    }
-
-    if (!formData.defenderName.trim()) {
-      setError('Nome do defensor é obrigatório');
-      return;
-    }
-
-    if (!formData.contactPhone.trim()) {
-      setError('Telefone de contato é obrigatório');
-      return;
-    }
-
-    if (!formData.contactEmail.trim()) {
-      setError('Email de contato é obrigatório');
-      return;
-    }
-
-    submitFormMutation.mutate({
-      ...formData,
-      userCpf: userData?.cpf,
-      userOab: userData?.oab,
-      userPhone: userData?.telefone,
-      userAddress: userData?.endereco,
-    });
   };
 
-  if (!userData) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
+  if (!userData) return <div className="flex min-h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 py-8">
-      <div className="max-w-2xl mx-auto">
-        <Card className="p-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Novo Formulário</h1>
-            <p className="text-gray-600 mt-2">Preencha os dados abaixo para submeter seu formulário</p>
-          </div>
-
-          <div className="bg-blue-50 p-4 rounded-lg mb-6">
-            <h2 className="font-semibold text-gray-900 mb-3">Seus Dados (Integrados)</h2>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-gray-600">Nome</p>
-                <p className="font-medium">{userData.nome}</p>
-              </div>
-              <div>
-                <p className="text-gray-600">OAB</p>
-                <p className="font-medium">{userData.oab}</p>
-              </div>
-              <div>
-                <p className="text-gray-600">CPF</p>
-                <p className="font-medium">{formatCPF(userData.cpf)}</p>
-              </div>
-              <div>
-                <p className="text-gray-600">Email</p>
-                <p className="font-medium">{userData.email}</p>
-              </div>
-              <div>
-                <p className="text-gray-600">Cidade</p>
-                <p className="font-medium">{userData.cidade}</p>
-              </div>
-              <div>
-                <p className="text-gray-600">Estado</p>
-                <p className="font-medium">{userData.estado}</p>
-              </div>
-            </div>
-          </div>
-
-          {error && (
-            <Alert variant="destructive" className="mb-6">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          {success && (
-            <Alert className="mb-6 bg-green-50 border-green-200">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-800">
-                Formulário enviado com sucesso! Redirecionando...
-              </AlertDescription>
-            </Alert>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Número do Processo *
-              </label>
-              <Input
-                type="text"
-                placeholder="Ex: 0000000-00.0000.0.00.0000"
-                value={formData.processNumber}
-                onChange={(e) => setFormData({ ...formData, processNumber: e.target.value })}
-                disabled={submitFormMutation.isPending}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Relato/Descrição *
-              </label>
-              <Textarea
-                placeholder="Descreva detalhadamente o caso..."
-                value={formData.report}
-                onChange={(e) => setFormData({ ...formData, report: e.target.value })}
-                disabled={submitFormMutation.isPending}
-                rows={5}
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Mínimo 10 caracteres
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Defensor Público Responsável *
-              </label>
-              <Input
-                type="text"
-                placeholder="Nome do defensor público"
-                value={formData.defenderName}
-                onChange={(e) => setFormData({ ...formData, defenderName: e.target.value })}
-                disabled={submitFormMutation.isPending}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Telefone de Contato *
-              </label>
-              <Input
-                type="tel"
-                placeholder="(XX) XXXXX-XXXX"
-                value={formData.contactPhone}
-                onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
-                disabled={submitFormMutation.isPending}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email de Contato *
-              </label>
-              <Input
-                type="email"
-                placeholder="seu@email.com"
-                value={formData.contactEmail}
-                onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
-                disabled={submitFormMutation.isPending}
-              />
-            </div>
-
-            <div className="flex gap-4 pt-4">
-              <Button
-                type="submit"
-                className="flex-1"
-                disabled={submitFormMutation.isPending}
-              >
-                {submitFormMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Enviando...
-                  </>
-                ) : (
-                  'Enviar Formulário'
-                )}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setLocation('/meus-formularios')}
-              >
-                Cancelar
-              </Button>
-            </div>
-          </form>
-        </Card>
-      </div>
-    </div>
+    <div className="min-h-screen bg-gray-50 p-4 py-8"><div className="mx-auto max-w-2xl"><Card className="p-8">
+      <div className="mb-8"><h1 className="text-3xl font-bold text-gray-900">Novo Formulário</h1><p className="mt-2 text-gray-600">Preencha os dados abaixo para submeter sua solicitação.</p></div>
+      {error && <Alert variant="destructive" className="mb-6"><AlertDescription>{error}</AlertDescription></Alert>}
+      {success ? <div className="flex flex-col items-center py-12 text-center"><CheckCircle className="mb-4 h-12 w-12 text-green-600" /><h2 className="text-xl font-semibold">Formulário enviado com sucesso</h2><p className="mt-2 text-gray-600">Você será redirecionado para seus formulários.</p></div> : <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="rounded-lg bg-blue-50 p-4"><h2 className="mb-3 font-semibold text-gray-900">Seus dados integrados</h2><div className="grid grid-cols-2 gap-4 text-sm"><div><p className="text-gray-600">Nome</p><p className="font-medium">{userData.nome}</p></div><div><p className="text-gray-600">OAB</p><p className="font-medium">{userData.oab}</p></div><div><p className="text-gray-600">CPF</p><p className="font-medium">{formatCPF(userData.cpf)}</p></div><div><p className="text-gray-600">Email</p><p className="font-medium">{userData.email}</p></div></div></div>
+        <div><label htmlFor="processNumber" className="mb-2 block text-sm font-medium">Número do processo</label><Input id="processNumber" value={formData.processNumber} onChange={(e) => setFormData({ ...formData, processNumber: e.target.value })} /></div>
+        <div><label htmlFor="defenderName" className="mb-2 block text-sm font-medium">Defensor responsável</label><Input id="defenderName" value={formData.defenderName} onChange={(e) => setFormData({ ...formData, defenderName: e.target.value })} /></div>
+        <div><label htmlFor="contactPhone" className="mb-2 block text-sm font-medium">Telefone de contato</label><Input id="contactPhone" value={formData.contactPhone} onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })} /></div>
+        <div><label htmlFor="contactEmail" className="mb-2 block text-sm font-medium">Email de contato</label><Input id="contactEmail" type="email" value={formData.contactEmail} onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })} /></div>
+        <div><label htmlFor="report" className="mb-2 block text-sm font-medium">Relato da solicitação</label><Textarea id="report" rows={6} value={formData.report} onChange={(e) => setFormData({ ...formData, report: e.target.value })} /></div>
+        <Button type="submit" disabled={isPending} className="w-full">{isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Enviando...</> : 'Enviar formulário'}</Button>
+      </form>}
+    </Card></div></div>
   );
 }

@@ -8,20 +8,20 @@ import { Calendar, Clock, XCircle, RefreshCw, Loader2, AlertCircle } from "lucid
 import { toast } from "sonner";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function MyAppointments() {
-  const { user } = useAuth();
-  const historyQuery = trpc.appointments.getHistory.useQuery({ limit: 50 });
+  const { user: _user } = useAuth();
+  const historyQuery = trpc.appointments.getHistory.useQuery();
   const [activeTab, setActiveTab] = useState("confirmed");
   const [cancellingId, setCancellingId] = useState<number | null>(null);
   const [cancellationReason, setCancellationReason] = useState("");
   const [reschedulingId, setReschedulingId] = useState<number | null>(null);
-  const [rescheduleDate, setRescheduleDate] = useState<Date | null>(null);
-  const [rescheduleTime, setRescheduleTime] = useState("");
+  const [_rescheduleDate, _setRescheduleDate] = useState<Date | null>(null);
+  const [_rescheduleTime, _setRescheduleTime] = useState("");
 
   const cancelMutation = trpc.appointments.cancel.useMutation({
     onSuccess: () => {

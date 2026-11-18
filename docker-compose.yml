@@ -4,7 +4,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: build
+      target: final
     container_name: agendamento-inss-app
     restart: unless-stopped
     init: true
@@ -32,19 +32,9 @@ services:
     ports:
       - "3940:3000"
     volumes:
-      - ./client:/app/client
-      - ./server:/app/server
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
-      - ./shared:/app/shared
-      - ./drizzle:/app/drizzle
-      - node_modules:/app/node_modules
-      - pnpm_store:/pnpm/store
-    # Pnpm install e depois inicia o dev mode
-    command: sh -c "echo '🚀 Iniciando container...' && pnpm install --no-frozen-lockfile && echo '📦 Dependências prontas!' && pnpm dev"
-
-volumes:
-  pnpm_store:
-    name: inss_pnpm_store
-  node_modules:
-    name: inss_node_modules
+      - ./server/uploads:/app/server/uploads
+    # A imagem final já contém o build e as dependências de produção.
+    # Não executar pnpm dev em produção: isso reativa o Vite Dev Server.
+    command: ["pnpm", "start"]

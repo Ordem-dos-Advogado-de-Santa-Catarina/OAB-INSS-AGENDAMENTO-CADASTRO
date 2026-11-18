@@ -11,7 +11,7 @@ export default function StatusCadastroINSS() {
   const { user, loading } = useAuth();
   const [, navigate] = useLocation();
 
-  const myFormsQuery = trpc.forms.getMyForms.useQuery(undefined, {
+  const myFormsQuery = trpc.forms.getMine.useQuery(undefined, {
     enabled: !!user && user.role !== "admin"
   });
 

@@ -75,11 +75,17 @@ function writeToLogFile(source: LogSource, entries: unknown[]) {
  * - Auto-trimmed when exceeding 1MB (keeps newest entries)
  */
 function vitePluginManusDebugCollector(): Plugin {
+  let isBuild = false;
+
   return {
     name: "manus-debug-collector",
 
+    configResolved(config) {
+      isBuild = config.command === "build";
+    },
+
     transformIndexHtml(html) {
-      if (process.env.NODE_ENV === "production") {
+      if (isBuild || process.env.NODE_ENV === "production") {
         return html;
       }
       return {

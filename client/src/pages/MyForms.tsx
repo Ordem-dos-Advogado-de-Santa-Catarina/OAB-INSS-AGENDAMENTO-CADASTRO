@@ -1,145 +1,66 @@
-import { useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Loader2, Plus, Eye } from 'lucide-react';
-import { trpc } from '@/lib/trpc';
-import { useLocation } from 'wouter';
+import { useAuth } from "@/_core/hooks/useAuth";
+import DashboardLayout from "@/components/DashboardLayout";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2, Plus, Eye, FileText } from "lucide-react";
+import { trpc } from "@/lib/trpc";
+import { useLocation } from "wouter";
 
 const statusColors: Record<string, string> = {
-  pending: 'bg-yellow-100 text-yellow-800',
-  analyzing: 'bg-blue-100 text-blue-800',
-  approved: 'bg-green-100 text-green-800',
-  rejected: 'bg-red-100 text-red-800',
+  draft: "bg-slate-100 text-slate-700",
+  submitted: "bg-yellow-100 text-yellow-800",
+  approved: "bg-green-100 text-green-800",
+  rejected: "bg-red-100 text-red-800",
 };
 
 const statusLabels: Record<string, string> = {
-  pending: 'Pendente',
-  analyzing: 'Em Análise',
-  approved: 'Aprovado',
-  rejected: 'Rejeitado',
+  draft: "Rascunho",
+  submitted: "Em análise",
+  approved: "Aprovado",
+  rejected: "Rejeitado",
 };
 
 export default function MyForms() {
-  const [, setLocation] = useLocation();
-  const { data: forms, isLoading, error } = trpc.forms.getUserForms.useQuery();
-
-  useEffect(() => {
-    const userData = localStorage.getItem('userData');
-    if (!userData) {
-      setLocation('/login');
-    }
-  }, [setLocation]);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
+  const { user } = useAuth();
+  const [, navigate] = useLocation();
+  const { data: forms, isLoading, error } = trpc.forms.getMine.useQuery(undefined, { enabled: !!user });
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 py-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-8 flex justify-between items-center">
+    <DashboardLayout>
+      <div className="mx-auto max-w-5xl space-y-6">
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Meus Formulários</h1>
-            <p className="text-gray-600 mt-2">Acompanhe o status de seus formulários</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#c9212a]">Área do advogado</p>
+            <h1 className="mt-1 text-3xl font-bold text-slate-900">Meus formulários</h1>
+            <p className="mt-1 text-slate-600">Acompanhe suas solicitações de cadastro e atualização.</p>
           </div>
-          <Button onClick={() => setLocation('/formulario')} className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Novo Formulário
-          </Button>
+          <Button onClick={() => navigate("/forms/new")} className="bg-[#063b66] hover:bg-[#052f52]"><Plus className="mr-2 h-4 w-4" />Novo formulário</Button>
         </div>
 
-        {error && (
-          <Card className="p-6 bg-red-50 border-red-200 mb-6">
-            <p className="text-red-800">Erro ao carregar formulários</p>
-          </Card>
-        )}
-
-        {!forms || forms.length === 0 ? (
-          <Card className="p-12 text-center">
-            <p className="text-gray-600 mb-4">Você ainda não enviou nenhum formulário</p>
-            <Button onClick={() => setLocation('/formulario')}>
-              Criar Primeiro Formulário
-            </Button>
-          </Card>
+        {isLoading ? (
+          <Card><CardContent className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-[#063b66]" /></CardContent></Card>
+        ) : error ? (
+          <Card className="border-red-200 bg-red-50"><CardContent className="py-8 text-center text-red-700">Não foi possível carregar seus formulários.</CardContent></Card>
+        ) : !forms || forms.length === 0 ? (
+          <Card><CardContent className="flex flex-col items-center py-16 text-center"><FileText className="mb-4 h-10 w-10 text-slate-300" /><p className="font-medium text-slate-700">Você ainda não possui formulários.</p><p className="mt-1 text-sm text-slate-500">Comece um novo cadastro para acompanhar seu andamento aqui.</p><Button onClick={() => navigate("/forms/new")} className="mt-5">Criar primeiro formulário</Button></CardContent></Card>
         ) : (
           <div className="space-y-4">
             {forms.map((form) => (
-              <Card key={form.id} className="p-6 hover:shadow-md transition-shadow">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      Processo: {form.processNumber}
-                    </h3>
-                    <p className="text-sm text-gray-600 mt-1">
-                      Defensor: {form.defenderName}
-                    </p>
-                  </div>
-                  <Badge className={statusColors[form.status as keyof typeof statusColors]}>
-                    {statusLabels[form.status as keyof typeof statusLabels]}
-                  </Badge>
-                </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 text-sm">
-                  <div>
-                    <p className="text-gray-600">Telefone</p>
-                    <p className="font-medium">{form.contactPhone}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-600">Email</p>
-                    <p className="font-medium">{form.contactEmail}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-600">Enviado em</p>
-                    <p className="font-medium">
-                      {new Date(form.submittedAt).toLocaleDateString('pt-BR')}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-gray-600">Atualizado em</p>
-                    <p className="font-medium">
-                      {new Date(form.statusChangedAt).toLocaleDateString('pt-BR')}
-                    </p>
-                  </div>
-                </div>
-
-                {form.rejectionReason && (
-                  <div className="bg-red-50 p-3 rounded mb-4 border border-red-200">
-                    <p className="text-sm font-medium text-red-800">Motivo da Rejeição:</p>
-                    <p className="text-sm text-red-700">{form.rejectionReason}</p>
-                  </div>
-                )}
-
-                {form.adminNotes && (
-                  <div className="bg-blue-50 p-3 rounded mb-4 border border-blue-200">
-                    <p className="text-sm font-medium text-blue-800">Observações do Admin:</p>
-                    <p className="text-sm text-blue-700">{form.adminNotes}</p>
-                  </div>
-                )}
-
-                <div className="text-sm text-gray-700 bg-gray-50 p-3 rounded mb-4 max-h-32 overflow-y-auto">
-                  <p className="font-medium mb-2">Relato:</p>
-                  <p>{form.report}</p>
-                </div>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setLocation(`/formulario/${form.id}`)}
-                  className="flex items-center gap-2"
-                >
-                  <Eye className="h-4 w-4" />
-                  Ver Detalhes
-                </Button>
+              <Card key={form.id} className="transition-shadow hover:shadow-md">
+                <CardHeader className="flex flex-row items-start justify-between gap-4">
+                  <div><CardTitle className="text-lg">{form.name}</CardTitle><p className="mt-1 text-sm text-slate-500">{form.formType === "tcms_update" ? "Atualização TCMS" : "Cadastro INSS"} · #{form.id}</p></div>
+                  <Badge className={statusColors[form.status] ?? "bg-slate-100 text-slate-700"}>{statusLabels[form.status] ?? form.status}</Badge>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 text-sm sm:grid-cols-3"><div><p className="text-slate-500">CPF</p><p className="font-medium text-slate-800">{form.cpf}</p></div><div><p className="text-slate-500">OAB</p><p className="font-medium text-slate-800">{form.oab}</p></div><div><p className="text-slate-500">Enviado em</p><p className="font-medium text-slate-800">{form.submittedAt ? new Date(form.submittedAt).toLocaleDateString("pt-BR") : "Ainda não enviado"}</p></div></div>
+                  <Button variant="outline" size="sm" className="mt-5" onClick={() => navigate(`/forms/${form.id}`)}><Eye className="mr-2 h-4 w-4" />Ver detalhes</Button>
+                </CardContent>
               </Card>
             ))}
           </div>
         )}
       </div>
-    </div>
+    </DashboardLayout>
   );
 }

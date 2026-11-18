@@ -6,33 +6,48 @@ import { getSessionCookieOptions } from "./_core/cookies.js";
 import { systemRouter } from "./_core/systemRouter.js";
 import {
   getUserByCPF,
-  createAppointment,
-  getUserAppointments,
+    getUserAppointments,
   getUpcomingAppointments,
   cancelAppointment,
-  incrementAppointmentCount,
-  updateLastCancellation,
+    updateLastCancellation,
   logAuditAction,
   getDb,
   updateUserPhone,
-  getAppointmentsByDate,
-  createUserForm,
+    createUserForm,
   getUserForm,
   getUserFormsByUserId,
-  getAllUserForms,
-  updateUserFormStatus,
+    updateUserFormStatus,
   createFormAttachment,
   getFormAttachments,
   getSystemSettings,
   updateSystemSettings,
+  createAppointmentAtomically,
 } from "./db.js";
-import { eq, and, or, gte, lte, asc, desc, ne, sql } from "drizzle-orm";
-import { users, appointments, blockedSlots, appointmentMessages, emailTemplates, userForms, formAttachments } from "../drizzle/schema.js";
-import { soapAuthService } from "./services/soapAuthService.js";
+import { eq, and, or, gte, lte, asc, desc, sql } from "drizzle-orm";
+import { users, appointments, blockedSlots, appointmentMessages, emailTemplates, userForms, formAttachments, systemSettings, auditLogs } from "../drizzle/schema.js";
+import {} from "./services/soapAuthService.js";
 import { localAuthService } from "./services/localAuthService.js";
 import { appointmentValidationService } from "./services/appointmentValidationService.js";
 import { emailService } from "./services/emailService.js";
 import { documentService } from "./services/documentService.js";
+
+const loginAttempts = new Map<string, { count: number; resetAt: number }>();
+const LOGIN_WINDOW_MS = 60_000;
+const MAX_LOGIN_ATTEMPTS = 8;
+
+function enforceLoginRateLimit(ip: string, cpf: string) {
+  const now = Date.now();
+  const key = `${ip}:${cpf.replace(/\D/g, "")}`;
+  const current = loginAttempts.get(key);
+  if (!current || current.resetAt <= now) {
+    loginAttempts.set(key, { count: 1, resetAt: now + LOGIN_WINDOW_MS });
+    return;
+  }
+  if (current.count >= MAX_LOGIN_ATTEMPTS) {
+    throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Muitas tentativas de login. Aguarde um minuto." });
+  }
+  current.count += 1;
+}
 
 export const appRouter = router({
   system: systemRouter,
@@ -104,16 +119,22 @@ export const appRouter = router({
         // Atualiza telefone do usuário se necessário
         await updateUserPhone(ctx.user.id, input.phone);
 
-        const appointmentId = await createAppointment({
-          userId: ctx.user.id,
-          appointmentDate: input.appointmentDate,
-          startTime: input.startTime,
-          endTime: input.endTime,
-          reason: input.reason,
-          notes: input.notes,
-        });
-
-        await incrementAppointmentCount(ctx.user.id);
+        let appointmentId: number;
+        try {
+          appointmentId = await createAppointmentAtomically({
+            userId: ctx.user.id,
+            appointmentDate: input.appointmentDate,
+            startTime: input.startTime,
+            endTime: input.endTime,
+            reason: input.reason,
+            notes: input.notes,
+          });
+        } catch (error) {
+          if (error instanceof Error && (error.message === "APPOINTMENT_SLOT_TAKEN" || error.message.includes("unique_appointment"))) {
+            throw new TRPCError({ code: "CONFLICT", message: "Este horário acabou de ser reservado por outro usuário." });
+          }
+          throw error;
+        }
 
         await logAuditAction({
           userId: ctx.user.id,
@@ -198,10 +219,13 @@ export const appRouter = router({
   auth: router({
     me: publicProcedure.query((opts) => opts.ctx.user),
 
-    logout: publicProcedure.mutation(({ ctx }) => {
+    logout: publicProcedure.mutation(async ({ ctx }) => {
+      if (ctx.user) {
+        const db = await getDb();
+        if (db) await db.update(users).set({ lastSignedIn: new Date() }).where(eq(users.id, ctx.user.id));
+      }
       const cookieOptions = getSessionCookieOptions(ctx.req);
-      const { maxAge, ...clearOptions } = cookieOptions;
-      ctx.res.clearCookie(COOKIE_NAME, clearOptions);
+      ctx.res.clearCookie(COOKIE_NAME, cookieOptions);
       return {
         success: true,
       } as const;
@@ -236,6 +260,7 @@ export const appRouter = router({
       )
       .mutation(async ({ input, ctx }) => {
         try {
+          enforceLoginRateLimit(ctx.req.ip || "unknown", input.cpf);
           // Usa autenticação com fallback (SOAP -> Local)
           const authResult = await localAuthService.authenticateWithFallback(input.cpf, input.password);
 
@@ -311,13 +336,13 @@ export const appRouter = router({
           const { sdk } = await import("./_core/sdk.js");
           const sessionToken = await sdk.createSessionToken(user.openId, {
             name: user.name,
-            expiresInMs: 365 * 24 * 60 * 60 * 1000,
+            expiresInMs: 24 * 60 * 60 * 1000,
           });
 
           const cookieOptions = getSessionCookieOptions(ctx.req);
           ctx.res.cookie(COOKIE_NAME, sessionToken, {
             ...cookieOptions,
-            maxAge: 365 * 24 * 60 * 60 * 1000,
+            maxAge: 24 * 60 * 60 * 1000,
           });
 
           await logAuditAction({
@@ -367,7 +392,7 @@ export const appRouter = router({
           // Mescla os dados do banco com os dados enviados pelo frontend (ex: notificationEmail)
           const dataForTemplate = {
             ...fullUser,
-            ...(input.customData || {})
+            ...input.customData
           };
 
           // Mapeia o nome do arquivo com base no template
@@ -596,7 +621,7 @@ export const appRouter = router({
 
     getAllAppointments: adminProcedure
       .input(z.object({ limit: z.number().optional() }))
-      .query(async ({ input }) => {
+      .query(async ({ input: _input }) => {
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB not available" });
 
@@ -644,7 +669,7 @@ export const appRouter = router({
       .input(z.object({
         all: z.boolean().optional().default(true)
       }))
-      .query(async ({ input }) => {
+      .query(async ({ input: _input }) => {
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB not available" });
 
@@ -868,7 +893,9 @@ export const appRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB not available" });
 
       const settings = await db.select().from(systemSettings).limit(1);
-      return settings[0];
+      if (!settings[0]) return undefined;
+      const { smtpPassword: _smtpPassword, ...safeSettings } = settings[0];
+      return { ...safeSettings, smtpPassword: "" };
     }),
 
     updateSystemSettings: adminProcedure
@@ -899,10 +926,7 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB not available" });
 
-        await db.update(systemSettings).set({
-          ...input,
-          updatedAt: new Date(),
-        });
+        await updateSystemSettings({ ...input, updatedAt: new Date() });
 
         await logAuditAction({
           userId: ctx.user.id,
@@ -1028,7 +1052,10 @@ export const appRouter = router({
         if (form.userId !== ctx.user.id && ctx.user.role !== "admin") {
           throw new TRPCError({ code: "UNAUTHORIZED" });
         }
-        const attachments = await getFormAttachments(input.id);
+        const attachments = (await getFormAttachments(input.id)).map(attachment => ({
+          ...attachment,
+          fileUrl: `/api/documents/${attachment.id}`,
+        }));
         return { ...form, attachments };
       }),
 
@@ -1053,6 +1080,10 @@ export const appRouter = router({
         const form = await getUserForm(input.formId);
         if (!form || form.userId !== ctx.user.id) throw new TRPCError({ code: "UNAUTHORIZED" });
 
+        if (Buffer.byteLength(input.fileContent, "base64") > 10 * 1024 * 1024) {
+          throw new TRPCError({ code: "PAYLOAD_TOO_LARGE", message: "Arquivo excede o limite de 10 MB" });
+        }
+
         // Import node modules
         const fs = await import("fs");
         const path = await import("path");
@@ -1068,7 +1099,20 @@ export const appRouter = router({
         
         // Gera um nome curto e seguro para o arquivo (ex: 1713890000_aBc123XyZ.pdf)
         const { nanoid } = await import("nanoid");
-        const extension = path.extname(input.fileName) || '.pdf';
+        const extension = path.extname(input.fileName).toLowerCase();
+        const allowed = new Set([".pdf", ".jpg", ".jpeg", ".png"]);
+        if (!allowed.has(extension)) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Tipo de arquivo não permitido" });
+        }
+        const signatures: Record<string, (b: Buffer) => boolean> = {
+          ".pdf": b => b.subarray(0, 5).toString("ascii") === "%PDF-",
+          ".jpg": b => b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff,
+          ".jpeg": b => b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff,
+          ".png": b => b.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])),
+        };
+        if (!signatures[extension](fileBuffer)) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Conteúdo do arquivo não corresponde à extensão" });
+        }
         const safeId = nanoid(10);
         const fileName = `${Date.now()}_${safeId}${extension}`;
         
@@ -1078,22 +1122,23 @@ export const appRouter = router({
         // Build local URL
         const url = `/uploads/${input.formId}/${fileName}`;
 
-        // Save attachment record with local URL
-        await createFormAttachment({
+        // Save attachment record; the public filesystem URL is never exposed.
+        const [attachmentResult] = await createFormAttachment({
           formId: input.formId,
           fileName: input.fileName,
           fileUrl: url,
           fileType: input.fileType,
         });
+        const attachmentId = (attachmentResult as any).insertId as number;
 
-        return { success: true, url };
+        return { success: true, url: `/api/documents/${attachmentId}` };
       }),
 
     addAttachment: protectedProcedure
       .input(z.object({
         formId: z.number(),
         fileName: z.string(),
-        fileUrl: z.string(),
+        fileUrl: z.string().refine(value => /^\/[^/].*/.test(value) && !/[<>"'`]/.test(value) && !/^(?:javascript|data|vbscript):/i.test(value), "URL de anexo inválida"),
         fileType: z.string(),
       }))
       .mutation(async ({ input, ctx }) => {
@@ -1135,7 +1180,7 @@ export const appRouter = router({
         status: z.enum(["draft", "submitted", "approved", "rejected"]),
         rejectionReason: z.string().optional(),
       }))
-      .mutation(async ({ input, ctx }) => {
+      .mutation(async ({ input, ctx: _ctx }) => {
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 

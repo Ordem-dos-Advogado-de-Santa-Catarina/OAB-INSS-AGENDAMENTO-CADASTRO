@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Send, User, ShieldCheck } from "lucide-react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import {} from "date-fns";
+import {} from "date-fns/locale";
 
 interface AppointmentChatProps {
   appointmentId: number;

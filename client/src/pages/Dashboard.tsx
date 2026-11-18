@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Calendar, Clock, AlertCircle, CheckCircle2, Loader2, FileText, Download, MessageSquare } from "lucide-react";
+import { Calendar, Clock, AlertCircle, CheckCircle2, Loader2, MessageSquare } from "lucide-react";
 import { AppointmentChat } from "@/components/AppointmentChat";
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
@@ -66,10 +66,7 @@ export default function Dashboard() {
     onSuccess: (data) => {
       // Converte base64 para Blob e inicia download
       const byteCharacters = atob(data.content);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
+      const byteNumbers = Array.from({ length: byteCharacters.length }, (_, i) => byteCharacters.charCodeAt(i));
       const byteArray = new Uint8Array(byteNumbers);
       const blob = new Blob([byteArray], { type: data.contentType });
       
@@ -145,8 +142,8 @@ export default function Dashboard() {
     });
   };
 
-  const handleGenerateDocument = () => {
-    generateDocumentMutation.mutate();
+  const _handleGenerateDocument = () => {
+    generateDocumentMutation.mutate({ templateType: "ANEXO_II" });
   };
 
   const getDaysInMonth = (date: Date) => {
@@ -248,8 +245,8 @@ export default function Dashboard() {
                     const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
                     const dayBlocks = publicBlocksQuery.data?.blocks.filter(b => b.day === day) || [];
                     const isFullDayBlocked = dayBlocks.some(b => b.blockType === "full_day");
-                    const isPartialBlocked = dayBlocks.length > 0 && !isFullDayBlocked;
-                    const isBlocked = dayBlocks.length > 0;
+                    const _isPartialBlocked = dayBlocks.length > 0 && !isFullDayBlocked;
+                    const _isBlocked = dayBlocks.length > 0;
                     
                     const isDisabled = isPastDate(day, currentMonth) || isWeekend(day, currentMonth);
                     const isSelected = selectedSlot?.date.getDate() === day && selectedSlot?.date.getMonth() === currentMonth.getMonth();

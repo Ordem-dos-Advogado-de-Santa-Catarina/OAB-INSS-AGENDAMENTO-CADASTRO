@@ -44,7 +44,7 @@ const trpcClient = trpc.createClient({
       transformer: superjson,
       fetch(input, init) {
         return globalThis.fetch(input, {
-          ...(init ?? {}),
+          ...init,
           credentials: "include",
         });
       },

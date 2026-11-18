@@ -33,6 +33,12 @@ interface SOAPAuthResponse {
 export class SOAPAuthService {
   private wsdlUrl: string = 'https://servicos.oab-sc.org.br/WSAutenticar/WSAutenticar.asmx';
 
+  private formatCPF(cpf: string): string {
+    const cleaned = cpf.replace(/\D/g, "");
+    if (cleaned.length !== 11) return cpf;
+    return `${cleaned.slice(0, 3)}.${cleaned.slice(3, 6)}.${cleaned.slice(6, 9)}-${cleaned.slice(9)}`;
+  }
+
   async authenticate(usuario: string, senha: string): Promise<SOAPAuthResponse> {
     try {
       if (!usuario || !senha) {

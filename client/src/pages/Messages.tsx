@@ -1,10 +1,10 @@
 import { useState, useMemo } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import DashboardLayout from "@/components/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { AppointmentChat } from "@/components/AppointmentChat";
 import { trpc } from "@/lib/trpc";
-import { MessageSquare, Calendar, User, Loader2, AlertCircle, Inbox, History } from "lucide-react";
+import { MessageSquare, Calendar, Loader2, AlertCircle, Inbox, History } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -15,7 +15,7 @@ export default function Messages() {
 
   const appointmentsQuery = user?.role === 'admin' 
     ? trpc.admin.getAllAppointmentsWithStatus.useQuery()
-    : trpc.appointments.getHistory.useQuery({ limit: 50 });
+    : trpc.appointments.getHistory.useQuery();
 
   if (loading) {
     return (
@@ -29,7 +29,7 @@ export default function Messages() {
 
   const allAppointments = useMemo(() => {
     if (user?.role === 'admin') {
-      return appointmentsQuery.data?.appointments || [];
+      return (appointmentsQuery.data as { appointments?: unknown[] } | undefined)?.appointments || [];
     }
     // Para usuários comuns, o retorno é um array direto
     return (appointmentsQuery.data as any) || [];
@@ -74,7 +74,7 @@ export default function Messages() {
       try {
         const d = new Date(apt.appointmentDate);
         if (!isNaN(d.getTime())) return d.toLocaleDateString("pt-BR");
-      } catch (e) {}
+      } catch {}
     }
     return "";
   };

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
-import { Settings as SettingsIcon, Save, Loader2, Clock, Building, Mail, Shield, Server } from "lucide-react";
+import { Settings as SettingsIcon, Save, Loader2, Clock, Building, Mail, Server } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";

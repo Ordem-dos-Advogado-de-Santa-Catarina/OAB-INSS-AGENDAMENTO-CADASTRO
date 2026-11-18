@@ -12,7 +12,7 @@ import {
   getUserAppointments,
   getSystemSettings,
 } from "../db";
-import { eq, and, gte, lte, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { appointments } from "../../drizzle/schema";
 
 export interface ValidationError {
@@ -35,7 +35,7 @@ export class AppointmentValidationService {
   async validateDateTime(
     appointmentDate: Date,
     startTime: string,
-    userId: number
+    _userId: number
   ): Promise<ValidationError | null> {
     // Validação 1: Não permite agendamento no dia atual
     const today = new Date();
@@ -101,24 +101,15 @@ export class AppointmentValidationService {
    * Regra: Considera apenas agendamentos confirmados ou atendidos no mês da data solicitada.
    */
   async validateMonthlyLimit(userId: number, targetDate: Date): Promise<ValidationError | null> {
-    const db = await getDb();
-    if (!db) return null;
-
     // Define o início e fim do mês baseado na data do agendamento solicitado
     const startOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
     const endOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0, 23, 59, 59);
 
-    // Busca todos os agendamentos do usuário no mês da data solicitada
-    const monthAppointments = await db
-      .select()
-      .from(appointments)
-      .where(
-        and(
-          eq(appointments.userId, userId),
-          gte(appointments.appointmentDate, startOfMonth),
-          lte(appointments.appointmentDate, endOfMonth)
-        )
-      );
+    const allUserAppointments = await getUserAppointments(userId);
+    const monthAppointments = allUserAppointments.filter(appointment => {
+      const date = new Date(appointment.appointmentDate);
+      return date >= startOfMonth && date <= endOfMonth;
+    });
 
     // Conta agendamentos confirmados e atendidos (limite total do mês)
     const relevantAppointments = monthAppointments.filter(
@@ -130,20 +121,12 @@ export class AppointmentValidationService {
 
     if (relevantAppointments >= monthlyLimit) {
       // Regra Especial: Se atingiu o limite do mês, verifica se a nova data é pelo menos 30 dias após o último agendamento
-      const allUserAppointments = await db
-        .select()
-        .from(appointments)
-        .where(
-          and(
-            eq(appointments.userId, userId),
-            sql`${appointments.status} IN ('confirmed', 'completed')`
-          )
-        )
-        .orderBy(sql`${appointments.appointmentDate} DESC`)
-        .limit(1);
+      const confirmedAppointments = allUserAppointments
+        .filter(appointment => appointment.status === "confirmed" || appointment.status === "completed")
+        .sort((a, b) => new Date(b.appointmentDate).getTime() - new Date(a.appointmentDate).getTime());
 
-      if (allUserAppointments.length > 0) {
-        const lastAptDate = new Date(allUserAppointments[0].appointmentDate);
+      if (confirmedAppointments.length > 0) {
+        const lastAptDate = new Date(confirmedAppointments[0].appointmentDate);
         const diffTime = targetDate.getTime() - lastAptDate.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 

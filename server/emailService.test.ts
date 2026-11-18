@@ -1,56 +1,33 @@
-import { describe, it, expect } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { emailService } from "./services/emailService";
 
 describe("emailService", () => {
-  it("should initialize transporter with SMTP configuration", async () => {
-    // Verificar se o transporter foi inicializado
-    expect(emailService).toBeDefined();
-    
-    // Tentar enviar um email de teste
+  beforeEach(() => {
+    vi.spyOn(emailService, "queueEmail").mockResolvedValue(undefined);
+  });
+
+  it("deve aceitar e enfileirar um email HTML", async () => {
     const result = await emailService.sendEmail({
       to: process.env.SENDER_EMAIL || "test@example.com",
-      subject: "Teste de Configuração SMTP",
-      html: "<p>Este é um email de teste para validar a configuração SMTP.</p>",
+      subject: "Teste de configuração",
+      html: "<p>Teste</p>",
     });
-
-    // O resultado deve ser um booleano
-    expect(typeof result).toBe("boolean");
+    expect(result).toBe(true);
+    expect(emailService.queueEmail).toHaveBeenCalled();
   });
 
-  it("should format form submission notification email", async () => {
-    // Testar formatação de email de novo formulário
-    const result = await emailService.sendFormSubmittedNotification(
-      1,
-      "João da Silva",
-      "joao@example.com",
-      "0000000-00.0000.0.00.0000"
-    );
-
-    expect(typeof result).toBe("boolean");
+  it("deve formatar a notificação de envio de formulário", async () => {
+    const result = await emailService.sendFormSubmittedNotification(1, "João da Silva", "joao@example.com", "0000000-00.0000.0.00.0000");
+    expect(result).toBe(true);
   });
 
-  it("should format form status notification email", async () => {
-    // Testar formatação de email de atualização de status
-    const result = await emailService.sendFormStatusNotification(
-      "João da Silva",
-      "joao@example.com",
-      "approved",
-      "0000000-00.0000.0.00.0000"
-    );
-
-    expect(typeof result).toBe("boolean");
+  it("deve formatar a notificação de aprovação", async () => {
+    const result = await emailService.sendFormStatusNotification("João da Silva", "joao@example.com", "approved", "0000000-00.0000.0.00.0000");
+    expect(result).toBe(true);
   });
 
-  it("should include rejection reason in rejection email", async () => {
-    // Testar email de rejeição com motivo
-    const result = await emailService.sendFormStatusNotification(
-      "João da Silva",
-      "joao@example.com",
-      "rejected",
-      "0000000-00.0000.0.00.0000",
-      "Documentação incompleta"
-    );
-
-    expect(typeof result).toBe("boolean");
+  it("deve incluir o motivo em uma notificação de rejeição", async () => {
+    const result = await emailService.sendFormStatusNotification("João da Silva", "joao@example.com", "rejected", "0000000-00.0000.0.00.0000", "Documentação incompleta");
+    expect(result).toBe(true);
   });
 });

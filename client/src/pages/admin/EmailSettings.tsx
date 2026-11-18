@@ -60,7 +60,6 @@ export default function EmailSettings() {
     if (!currentTemplate) return;
     saveMutation.mutate({
       slug: currentTemplate.slug,
-      name: currentTemplate.name,
       subject: currentTemplate.subject,
       body: currentTemplate.body,
     });

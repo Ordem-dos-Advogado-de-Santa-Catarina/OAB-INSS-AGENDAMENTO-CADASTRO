@@ -4,7 +4,6 @@ import { users, appointments, blockedSlots } from "../../drizzle/schema.js";
 import * as fs from 'fs';
 import { nanoid } from 'nanoid';
 import { eq } from 'drizzle-orm';
-import * as path from 'path';
 
 /**
  * Função auxiliar para tratar datas sem sofrer com fuso horário (timezone).

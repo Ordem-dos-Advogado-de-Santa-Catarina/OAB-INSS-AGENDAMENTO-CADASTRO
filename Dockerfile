@@ -47,6 +47,8 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=build /app/patches ./patches
+# Os templates ODT são carregados em runtime pelo DocumentService.
+COPY --from=build /app/server/templates ./server/templates
 
 # Instalar apenas dependências de produção para reduzir espaço
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \

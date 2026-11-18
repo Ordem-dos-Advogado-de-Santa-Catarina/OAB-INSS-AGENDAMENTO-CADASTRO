@@ -3,14 +3,20 @@ import fs from "fs";
 import { type Server } from "http";
 import { nanoid } from "nanoid";
 import path from "path";
-import { createServer as createViteServer } from "vite";
-import viteConfig from "../../vite.config";
-import { fileURLToPath } from "url";
+import { fileURLToPath, pathToFileURL } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export async function setupVite(app: Express, server: Server) {
+  // Vite é dependência de desenvolvimento. O import dinâmico evita que o
+  // bundle de produção tente carregá-lo na imagem final do Docker.
+  const viteConfigUrl = pathToFileURL(path.resolve(process.cwd(), "vite.config.ts")).href;
+  const [{ createServer: createViteServer }, { default: viteConfig }] = await Promise.all([
+    import("vite"),
+    import(viteConfigUrl),
+  ]);
+
   const serverOptions = {
     middlewareMode: true,
     hmr: { server },
@@ -51,7 +57,9 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const distPath = "/app/dist/public";
+  // Resolve o build a partir da raiz de execução do projeto. O caminho
+  // anterior (/app/dist/public) só funcionava em um container específico.
+  const distPath = path.resolve(process.cwd(), "dist", "public");
   
   // 1. Servir a pasta assets explicitamente primeiro
   const assetsPath = path.join(distPath, "assets");

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {} from "@/components/ui/card";
 import { AlertCircle, Loader2, ShieldCheck } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { trpc } from "@/lib/trpc";
@@ -11,7 +11,7 @@ export default function Login() {
   const [cpf, setCpf] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [, navigate] = useLocation();
+  const [, _navigate] = useLocation();
 
   const loginMutation = trpc.auth.loginWithSOAP.useMutation({
     onSuccess: () => {

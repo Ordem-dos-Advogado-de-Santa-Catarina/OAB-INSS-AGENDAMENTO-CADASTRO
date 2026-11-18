@@ -314,15 +314,52 @@ export class EmailService {
   async sendEmail(data: {
     to: string;
     subject: string;
-    body: string;
+    body?: string;
+    html?: string;
     type?: string;
-  }): Promise<void> {
+  }): Promise<boolean> {
     await this.queueEmail({
       toEmail: data.to,
       subject: data.subject,
-      body: data.body,
+      body: data.body ?? data.html ?? "",
       emailType: data.type || "generic",
     });
+    return true;
+  }
+
+  async sendFormSubmittedNotification(
+    formId: number,
+    userName: string,
+    toEmail: string,
+    processNumber: string,
+  ): Promise<boolean> {
+    await this.queueEmail({
+      toEmail,
+      toName: userName,
+      subject: "Formulário recebido - Sistema de Agendamento INSS",
+      body: `<p>Olá, <strong>${userName}</strong>.</p><p>Recebemos seu formulário nº <strong>${formId}</strong>.</p><p>Processo: ${processNumber}</p>`,
+      emailType: "form_submitted",
+    });
+    return true;
+  }
+
+  async sendFormStatusNotification(
+    userName: string,
+    toEmail: string,
+    status: string,
+    processNumber: string,
+    rejectionReason?: string,
+  ): Promise<boolean> {
+    const statusLabel = status === "approved" ? "aprovado" : status === "rejected" ? "rejeitado" : status;
+    const reason = rejectionReason ? `<p><strong>Motivo:</strong> ${rejectionReason}</p>` : "";
+    await this.queueEmail({
+      toEmail,
+      toName: userName,
+      subject: `Atualização do formulário - ${statusLabel}`,
+      body: `<p>Olá, <strong>${userName}</strong>.</p><p>Seu formulário do processo ${processNumber} foi <strong>${statusLabel}</strong>.</p>${reason}`,
+      emailType: "form_status",
+    });
+    return true;
   }
 
   /**

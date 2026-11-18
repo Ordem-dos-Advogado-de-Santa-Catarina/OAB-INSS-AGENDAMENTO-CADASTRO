@@ -164,7 +164,7 @@ export class DocumentService {
   private cleanup(...files: string[]) {
     for (const file of files) {
       if (fs.existsSync(file)) {
-        try { fs.unlinkSync(file); } catch (e) {}
+        try { fs.unlinkSync(file); } catch {}
       }
     }
   }

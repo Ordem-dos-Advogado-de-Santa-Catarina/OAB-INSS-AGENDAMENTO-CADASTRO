@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
-import { toast } from "sonner";
+import {} from "sonner";
 import {
   Collapsible,
   CollapsibleContent,

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
-import { Calendar, Clock, Loader2, User, FileText, CheckCircle, XCircle, Clock4, UserMinus, Info, Mail, Phone, MapPin, AlertTriangle, RefreshCw, Send, MessageSquare } from "lucide-react";
+import { Calendar, Clock, Loader2, User, FileText, CheckCircle, XCircle, Clock4, UserMinus, Info, Mail, Phone, AlertTriangle, RefreshCw, Send, MessageSquare } from "lucide-react";
 import { AppointmentChat } from "@/components/AppointmentChat";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";

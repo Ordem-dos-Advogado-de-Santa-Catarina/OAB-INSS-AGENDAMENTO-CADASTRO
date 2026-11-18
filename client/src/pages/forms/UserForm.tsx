@@ -155,10 +155,7 @@ export default function UserForm() {
         }
       });
       const byteCharacters = atob(data.content);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
+      const byteNumbers = Array.from({ length: byteCharacters.length }, (_, i) => byteCharacters.charCodeAt(i));
       const byteArray = new Uint8Array(byteNumbers);
       const blob = new Blob([byteArray], { type: data.contentType });
       
@@ -172,7 +169,7 @@ export default function UserForm() {
       document.body.removeChild(a);
       
       toast.success(`Documento gerado com sucesso!`);
-    } catch (error) {
+    } catch {
       toast.error("Erro ao gerar documento");
     }
   };

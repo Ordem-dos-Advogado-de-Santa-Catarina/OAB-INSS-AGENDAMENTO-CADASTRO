@@ -15,8 +15,7 @@ import {
   ArrowLeft,
   Download,
   Edit,
-  Trash2,
-} from "lucide-react";
+  } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
@@ -68,14 +67,13 @@ export default function FormDetailsView() {
     { id: formId },
     {
       enabled: !!user && formId > 0,
-      onSuccess: (data) => {
-        setForm(data as FormData);
-      },
-      onError: (error) => {
-        toast.error(error.message || "Erro ao carregar formulário");
-      },
     }
   );
+
+  useEffect(() => {
+    if (formQuery.data) setForm(formQuery.data as FormData);
+    if (formQuery.error) toast.error(formQuery.error.message || "Erro ao carregar formulário");
+  }, [formQuery.data, formQuery.error]);
 
   useEffect(() => {
     if (!loading && !user) {

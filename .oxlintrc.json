@@ -1,0 +1,13 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "ignorePatterns": [
+    "client/public/__manus__/**",
+    "dist/**",
+    "node_modules/**"
+  ],
+  "rules": {
+    "eslint/no-unused-vars": "warn",
+    "unicorn/no-new-array": "warn",
+    "unicorn/no-useless-fallback-in-spread": "warn"
+  }
+}
