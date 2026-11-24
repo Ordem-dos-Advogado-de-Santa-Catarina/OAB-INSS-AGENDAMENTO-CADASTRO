@@ -1,0 +1,61 @@
+diff --git a/client/src/components/DashboardLayout.tsx b/client/src/components/DashboardLayout.tsx
+index d89f12f..bb5dde3 100644
+--- a/client/src/components/DashboardLayout.tsx
++++ b/client/src/components/DashboardLayout.tsx
+@@ -198,7 +198,7 @@ function DashboardLayoutContent({
+               {user?.role !== 'admin' && (
+                 <>
+                   <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+-                    Área do Advogado
++                    Área do(a) Advogado(a)
+                   </div>
+                   {menuItems.map(item => {
+                     const isActive = location === item.path;
+@@ -264,7 +264,7 @@ function DashboardLayoutContent({
+                       {user?.name || "-"}
+                     </p>
+                     <p className="text-[10px] text-gray-500 truncate mt-1">
+-                      {user?.role === 'admin' ? 'Administrador' : 'Advogado'}
++                      {user?.role === 'admin' ? 'Administrador' : 'Advogado(a)'}
+                     </p>
+                   </div>
+                 </button>
+diff --git a/client/src/pages/Dashboard.tsx b/client/src/pages/Dashboard.tsx
+index da55bdb..2cf618f 100644
+--- a/client/src/pages/Dashboard.tsx
++++ b/client/src/pages/Dashboard.tsx
+@@ -427,7 +427,7 @@ export default function Dashboard() {
+ 
+             {/* Telefone */}
+             <div className="space-y-2">
+-              <Label htmlFor="phone">Telefone de Contato</Label>
++              <Label htmlFor="phone">Telefone de Contato <span className="text-red-500">*</span></Label>
+               <Input 
+                 id="phone"
+                 placeholder="(00) 00000-0000" 
+diff --git a/client/src/pages/Login.tsx b/client/src/pages/Login.tsx
+index 65161bf..3fe18b1 100644
+--- a/client/src/pages/Login.tsx
++++ b/client/src/pages/Login.tsx
+@@ -60,7 +60,7 @@ export default function Login() {
+           />
+           <h2 className="text-2xl font-bold mb-2">Sistema de Agendamento</h2>
+           <p className="text-blue-100 opacity-80 max-w-xs">
+-            Acesso exclusivo para advogados e estagiários regularmente inscritos na OAB/SC.
++            Acesso exclusivo para advogados(as) e estagiários(as) regularmente inscritos(as) na OAB/SC.
+           </p>
+         </div>
+ 
+diff --git a/server/routers.ts b/server/routers.ts
+index 13a935b..e4ead6a 100644
+--- a/server/routers.ts
++++ b/server/routers.ts
+@@ -74,7 +74,7 @@ export const appRouter = router({
+         startTime: z.string(),
+         endTime: z.string(),
+         reason: z.string(),
+-        phone: z.string(),
++        phone: z.string().min(1, "Telefone é obrigatório"),
+         notes: z.string().optional(),
+       }))
+       .mutation(async ({ input, ctx }) => {

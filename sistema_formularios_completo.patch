@@ -1,0 +1,356 @@
+diff --git a/client/src/App.tsx b/client/src/App.tsx
+index 50b5c2a..af1ef63 100644
+--- a/client/src/App.tsx
++++ b/client/src/App.tsx
+@@ -15,6 +15,8 @@ import Settings from "./pages/admin/Settings";
+ import AdminCalendar from "./pages/admin/Calendar";
+ import EmailSettings from "./pages/admin/EmailSettings";
+ import Messages from "./pages/Messages";
++import UserForm from "./pages/forms/UserForm";
++import AdminFormsList from "./pages/admin/forms/AdminFormsList";
+ 
+ function Router() {
+   return (
+@@ -22,9 +24,11 @@ function Router() {
+       <Route path={"/"} component={Home} />
+       <Route path={"/login"} component={Login} />
+       <Route path={"/dashboard"} component={Dashboard} />
++      <Route path={"/forms/new"} component={UserForm} />
+       <Route path={"/my-appointments"} component={MyAppointments} />
+       <Route path={"/messages"} component={Messages} />
+       <Route path={"/admin/daily"} component={DailyAppointments} />
++      <Route path={"/admin/forms"} component={AdminFormsList} />
+       <Route path={"/admin/blocks"} component={BlockManagement} />
+       <Route path={"/admin"} component={AdminDashboard} />
+       <Route path={"/admin/settings"} component={Settings} />
+diff --git a/client/src/components/DashboardLayout.tsx b/client/src/components/DashboardLayout.tsx
+index d89f12f..8044388 100644
+--- a/client/src/components/DashboardLayout.tsx
++++ b/client/src/components/DashboardLayout.tsx
+@@ -21,7 +21,7 @@ import {
+ } from "@/components/ui/sidebar";
+ import { getLoginUrl } from "@/const";
+ import { useIsMobile } from "@/hooks/useMobile";
+-import { LayoutDashboard, LogOut, PanelLeft, Users, CalendarDays, ClipboardList, ShieldCheck, Lock, Mail, MessageSquare } from "lucide-react";
++import { LayoutDashboard, LogOut, PanelLeft, Users, CalendarDays, ClipboardList, ShieldCheck, Lock, Mail, MessageSquare, FileText } from "lucide-react";
+ import { CSSProperties, useEffect, useRef, useState } from "react";
+ import { useLocation } from "wouter";
+ import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
+@@ -29,12 +29,14 @@ import { Button } from "./ui/button";
+ 
+ const menuItems = [
+   { icon: LayoutDashboard, label: "Painel Principal", path: "/dashboard" },
++  { icon: FileText, label: "Preencher Formulário", path: "/forms/new" },
+   { icon: CalendarDays, label: "Meus Agendamentos", path: "/my-appointments" },
+   { icon: MessageSquare, label: "Mensagens", path: "/messages" },
+ ];
+ 
+ const adminMenuItems = [
+   { icon: LayoutDashboard, label: "Painel Principal", path: "/admin" },
++  { icon: FileText, label: "Gestão de Formulários", path: "/admin/forms" },
+   { icon: CalendarDays, label: "Calendário", path: "/admin/calendar" },
+   { icon: ClipboardList, label: "Atendimentos do Dia", path: "/admin/daily" },
+   { icon: MessageSquare, label: "Mensagens", path: "/messages" },
+@@ -198,7 +200,7 @@ function DashboardLayoutContent({
+               {user?.role !== 'admin' && (
+                 <>
+                   <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+-                    Área do Advogado
++                    Área do(a) Advogado(a)
+                   </div>
+                   {menuItems.map(item => {
+                     const isActive = location === item.path;
+@@ -264,7 +266,7 @@ function DashboardLayoutContent({
+                       {user?.name || "-"}
+                     </p>
+                     <p className="text-[10px] text-gray-500 truncate mt-1">
+-                      {user?.role === 'admin' ? 'Administrador' : 'Advogado'}
++                      {user?.role === 'admin' ? 'Administrador' : 'Advogado(a)'}
+                     </p>
+                   </div>
+                 </button>
+diff --git a/client/src/pages/Dashboard.tsx b/client/src/pages/Dashboard.tsx
+index da55bdb..2cf618f 100644
+--- a/client/src/pages/Dashboard.tsx
++++ b/client/src/pages/Dashboard.tsx
+@@ -427,7 +427,7 @@ export default function Dashboard() {
+ 
+             {/* Telefone */}
+             <div className="space-y-2">
+-              <Label htmlFor="phone">Telefone de Contato</Label>
++              <Label htmlFor="phone">Telefone de Contato <span className="text-red-500">*</span></Label>
+               <Input 
+                 id="phone"
+                 placeholder="(00) 00000-0000" 
+diff --git a/client/src/pages/Login.tsx b/client/src/pages/Login.tsx
+index 65161bf..3fe18b1 100644
+--- a/client/src/pages/Login.tsx
++++ b/client/src/pages/Login.tsx
+@@ -60,7 +60,7 @@ export default function Login() {
+           />
+           <h2 className="text-2xl font-bold mb-2">Sistema de Agendamento</h2>
+           <p className="text-blue-100 opacity-80 max-w-xs">
+-            Acesso exclusivo para advogados e estagiários regularmente inscritos na OAB/SC.
++            Acesso exclusivo para advogados(as) e estagiários(as) regularmente inscritos(as) na OAB/SC.
+           </p>
+         </div>
+ 
+diff --git a/drizzle/schema.ts b/drizzle/schema.ts
+index 2246f68..9342ed6 100644
+--- a/drizzle/schema.ts
++++ b/drizzle/schema.ts
+@@ -209,5 +209,46 @@ export const appointmentMessages = mysqlTable("appointment_messages", {
+   appointmentIdx: index("appointment_idx").on(table.appointmentId),
+ }));
+ 
++/**
++ * USER_FORMS TABLE - Formulários preenchidos pelos usuários
++ */
++export const userForms = mysqlTable("user_forms", {
++  id: int("ID").autoincrement().primaryKey(),
++  userId: int("USERID").notNull(),
++  // Dados extraídos/confirmados
++  name: text("NAME").notNull(),
++  cpf: varchar("CPF", { length: 14 }).notNull(),
++  email: varchar("EMAIL", { length: 320 }).notNull(),
++  oab: varchar("OAB", { length: 20 }).notNull(),
++  phone: varchar("PHONE", { length: 20 }),
++  address: text("ADDRESS"),
++  // Status do formulário
++  status: mysqlEnum("STATUS", ["draft", "submitted", "approved", "rejected"]).default("draft").notNull(),
++  submittedAt: timestamp("SUBMITTEDAT"),
++  createdAt: timestamp("CREATEDAT").defaultNow().notNull(),
++  updatedAt: timestamp("UPDATEDAT").defaultNow().onUpdateNow().notNull(),
++}, (table) => ({
++  userIdIdx: index("form_userId_idx").on(table.userId),
++  statusIdx: index("form_status_idx").on(table.status),
++}));
++
++/**
++ * FORM_ATTACHMENTS TABLE - Documentos anexados aos formulários
++ */
++export const formAttachments = mysqlTable("form_attachments", {
++  id: int("ID").autoincrement().primaryKey(),
++  formId: int("FORMID").notNull(),
++  fileName: varchar("FILENAME", { length: 255 }).notNull(),
++  fileUrl: text("FILEURL").notNull(),
++  fileType: varchar("FILETYPE", { length: 50 }).notNull(), // 'signed_doc_1', 'signed_doc_2', 'signed_doc_3', etc.
++  createdAt: timestamp("CREATEDAT").defaultNow().notNull(),
++}, (table) => ({
++  formIdIdx: index("formId_idx").on(table.formId),
++}));
++
+ export type User = typeof users.$inferSelect;
+ export type InsertUser = typeof users.$inferInsert;
++export type UserForm = typeof userForms.$inferSelect;
++export type InsertUserForm = typeof userForms.$inferInsert;
++export type FormAttachment = typeof formAttachments.$inferSelect;
++export type InsertFormAttachment = typeof formAttachments.$inferInsert;
+diff --git a/server/db.ts b/server/db.ts
+index c1e3599..ed518ed 100644
+--- a/server/db.ts
++++ b/server/db.ts
+@@ -11,6 +11,8 @@ import {
+   systemSettings,
+   emailTemplates,
+   appointmentMessages,
++  userForms,
++  formAttachments,
+ } from "../drizzle/schema";
+ import { ENV } from "./_core/env";
+ 
+@@ -498,6 +500,65 @@ export async function getEmailTemplates() {
+   return await db.select().from(emailTemplates);
+ }
+ 
++/**
++ * USER FORMS - Gerenciamento de formulários
++ */
++
++export async function createUserForm(data: typeof userForms.$inferInsert) {
++  const db = await getDb();
++  if (!db) throw new Error("Database not available");
++
++  const [result] = await db.insert(userForms).values(data);
++  return (result as any).insertId as number;
++}
++
++export async function getUserForm(formId: number) {
++  const db = await getDb();
++  if (!db) return null;
++
++  const result = await db.select().from(userForms).where(eq(userForms.id, formId)).limit(1);
++  return result.length > 0 ? result[0] : null;
++}
++
++export async function getUserFormsByUserId(userId: number) {
++  const db = await getDb();
++  if (!db) return [];
++
++  return await db.select().from(userForms).where(eq(userForms.userId, userId)).orderBy(desc(userForms.createdAt));
++}
++
++export async function getAllUserForms() {
++  const db = await getDb();
++  if (!db) return [];
++
++  return await db.select().from(userForms).orderBy(desc(userForms.createdAt));
++}
++
++export async function updateUserFormStatus(formId: number, status: "draft" | "submitted" | "approved" | "rejected") {
++  const db = await getDb();
++  if (!db) throw new Error("Database not available");
++
++  return await db.update(userForms).set({ status, submittedAt: status === "submitted" ? new Date() : undefined }).where(eq(userForms.id, formId));
++}
++
++/**
++ * FORM ATTACHMENTS - Gerenciamento de anexos
++ */
++
++export async function createFormAttachment(data: typeof formAttachments.$inferInsert) {
++  const db = await getDb();
++  if (!db) throw new Error("Database not available");
++
++  return await db.insert(formAttachments).values(data);
++}
++
++export async function getFormAttachments(formId: number) {
++  const db = await getDb();
++  if (!db) return [];
++
++  return await db.select().from(formAttachments).where(eq(formAttachments.formId, formId));
++}
++
+ export async function getEmailTemplateBySlug(slug: string) {
+   const db = await getDb();
+   if (!db) return null;
+diff --git a/server/routers.ts b/server/routers.ts
+index 13a935b..50f75d7 100644
+--- a/server/routers.ts
++++ b/server/routers.ts
+@@ -16,9 +16,16 @@ import {
+   getDb,
+   updateUserPhone,
+   getAppointmentsByDate,
++  createUserForm,
++  getUserForm,
++  getUserFormsByUserId,
++  getAllUserForms,
++  updateUserFormStatus,
++  createFormAttachment,
++  getFormAttachments,
+ } from "./db.js";
+ import { eq, and, gte, lte, asc, desc, ne, sql } from "drizzle-orm";
+-import { users, appointments, blockedSlots, appointmentMessages, emailTemplates } from "../drizzle/schema.js";
++import { users, appointments, blockedSlots, appointmentMessages, emailTemplates, userForms, formAttachments } from "../drizzle/schema.js";
+ import { soapAuthService } from "./services/soapAuthService.js";
+ import { appointmentValidationService } from "./services/appointmentValidationService.js";
+ import { emailService } from "./services/emailService.js";
+@@ -74,7 +81,7 @@ export const appRouter = router({
+         startTime: z.string(),
+         endTime: z.string(),
+         reason: z.string(),
+-        phone: z.string(),
++        phone: z.string().min(1, "Telefone é obrigatório"),
+         notes: z.string().optional(),
+       }))
+       .mutation(async ({ input, ctx }) => {
+@@ -920,6 +927,97 @@ export const appRouter = router({
+         return { success: true };
+       }),
+   }),
++
++  forms: router({
++    create: protectedProcedure
++      .input(z.object({
++        name: z.string(),
++        cpf: z.string(),
++        email: z.string(),
++        oab: z.string(),
++        phone: z.string().optional(),
++        address: z.string().optional(),
++      }))
++      .mutation(async ({ input, ctx }) => {
++        const formId = await createUserForm({
++          userId: ctx.user.id,
++          ...input,
++          status: "draft",
++        });
++        return { success: true, id: formId };
++      }),
++
++    getMine: protectedProcedure.query(async ({ ctx }) => {
++      return await getUserFormsByUserId(ctx.user.id);
++    }),
++
++    getById: protectedProcedure
++      .input(z.object({ id: z.number() }))
++      .query(async ({ input, ctx }) => {
++        const form = await getUserForm(input.id);
++        if (!form) throw new TRPCError({ code: "NOT_FOUND" });
++        if (form.userId !== ctx.user.id && ctx.user.role !== "admin") {
++          throw new TRPCError({ code: "UNAUTHORIZED" });
++        }
++        const attachments = await getFormAttachments(input.id);
++        return { ...form, attachments };
++      }),
++
++    submit: protectedProcedure
++      .input(z.object({ id: z.number() }))
++      .mutation(async ({ input, ctx }) => {
++        const form = await getUserForm(input.id);
++        if (!form || form.userId !== ctx.user.id) throw new TRPCError({ code: "UNAUTHORIZED" });
++        await updateUserFormStatus(input.id, "submitted");
++        return { success: true };
++      }),
++
++    addAttachment: protectedProcedure
++      .input(z.object({
++        formId: z.number(),
++        fileName: z.string(),
++        fileUrl: z.string(),
++        fileType: z.string(),
++      }))
++      .mutation(async ({ input, ctx }) => {
++        const form = await getUserForm(input.formId);
++        if (!form || form.userId !== ctx.user.id) throw new TRPCError({ code: "UNAUTHORIZED" });
++        await createFormAttachment(input);
++        return { success: true };
++      }),
++
++    // Admin routes
++    getAll: adminProcedure.query(async () => {
++      const db = await getDb();
++      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
++      
++      const results = await db
++        .select({
++          id: userForms.id,
++          name: userForms.name,
++          cpf: userForms.cpf,
++          email: userForms.email,
++          oab: userForms.oab,
++          status: userForms.status,
++          submittedAt: userForms.submittedAt,
++          createdAt: userForms.createdAt,
++        })
++        .from(userForms)
++        .orderBy(desc(userForms.createdAt));
++        
++      return results;
++    }),
++
++    updateStatus: adminProcedure
++      .input(z.object({
++        id: z.number(),
++        status: z.enum(["draft", "submitted", "approved", "rejected"]),
++      }))
++      .mutation(async ({ input }) => {
++        await updateUserFormStatus(input.id, input.status);
++        return { success: true };
++      }),
++  }),
+ });
+ 
+ export type AppRouter = typeof appRouter;
